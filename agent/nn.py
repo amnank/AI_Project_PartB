@@ -3,9 +3,9 @@ import numpy as np
 class Layer:
     """This class encapsulates the logic for a dense feed-forward layer in a neural network
     """
-    def __init__(self, input_size, output_size):
-        self.weights = np.random.randn(output_size, input_size)
-        self.bias = np.random.randn(output_size, 1)
+    def __init__(self, input_size, neurons):
+        self.weights = np.random.randn(neurons, input_size)
+        self.bias = np.random.randn(neurons, 1)
 
     def forward(self, layer_input):
         self.input = layer_input
@@ -37,7 +37,19 @@ class ReLU(Activation):
     """This class outlines the ReLU activation function
     """
     def __init__(self):
-        ReLU_function = lambda x : x if x > 0 else 0
-        ReLU_prime = lambda x : 1 if x > 0 else 0
-        super().__init__(ReLU, ReLU_prime)
+        ReLU_function = lambda x : x * (x > 0)
+        ReLU_prime = lambda x : 1 if np.greater(x, 0) else 0
+        super().__init__(ReLU_function, ReLU_prime)
 
+
+class tanH(Activation):
+    def __init__(self):
+        tanH_function = lambda x : np.tanh(x)
+        tanH_prime = lambda x : np.cosh(x) ** 2
+        super().__init__(tanH_function, tanH_prime)
+
+class Sigmoid(Activation):
+    def __init__(self):
+        sigmoid_function = lambda x : 1 / ( 1 + np.exp(-x))
+        sigmoid_prime = lambda x : sigmoid_function(x) * (1 - sigmoid_function(x))
+        super().__init__(sigmoid_function, sigmoid_prime)
