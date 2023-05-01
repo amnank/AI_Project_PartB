@@ -20,14 +20,8 @@ class Convolutional(Layer):
         self.output = np.copy(self.biases)
 
         for i in range(self.kernel_num):
-            print("I:", i)
             for j in range(self.input_depth):
-                print("J:", j)
-                print("Input: ", self.input.shape)
-                print("Kernels: ", self.kernels[i,j].shape)
-                print("Output: ", self.output[i].shape)
                 self.output[i] += sig.correlate2d(self.input[j], self.kernels[i,j], "valid")
-        print("________________________________________________________")
         return self.output
 
     def backward(self, d_outputs, learning_rate):
