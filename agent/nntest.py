@@ -10,8 +10,7 @@ network = [
     Layer(100, 3),
     ReLU(),
     Layer(3, 1),
-    ReLU(),
-    Sigmoid()
+    tanH()
 ]
 
 inp = np.array([0.5, -7]).reshape(-1, 1)
