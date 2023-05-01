@@ -1,5 +1,6 @@
 from nn import Layer
 import numpy as np
+import scipy.signal as sig
 
 class Convolutional(Layer):
     def __init__(self, input_shape, kernel_size, kernel_num):
@@ -8,7 +9,6 @@ class Convolutional(Layer):
         self.kernel_num = kernel_num
         self.input_depth = input_depth
         self.input_shape = input_shape
-
         self.output_shape = (kernel_num, input_height - kernel_size + 1, input_width - kernel_size + 1)
         self.kernel_shape = (kernel_num, input_depth, kernel_size, kernel_size)
 
@@ -20,9 +20,14 @@ class Convolutional(Layer):
         self.output = np.copy(self.biases)
 
         for i in range(self.kernel_num):
+            print("I:", i)
             for j in range(self.input_depth):
-                self.output[i] += np.correlate(self.input[j], self.kernels[i,j], "valid")
-        
+                print("J:", j)
+                print("Input: ", self.input.shape)
+                print("Kernels: ", self.kernels[i,j].shape)
+                print("Output: ", self.output[i].shape)
+                self.output[i] += sig.correlate2d(self.input[j], self.kernels[i,j], "valid")
+        print("________________________________________________________")
         return self.output
 
     def backward(self, d_outputs, learning_rate):
@@ -32,8 +37,8 @@ class Convolutional(Layer):
 
         for i in range(self.kernel_num):
             for j in range(self.input_depth):
-                d_kernels[i, j] = np.correlate(self.input[j], d_outputs[i], "valid")
-                d_inputs[j] = np.convolve(d_outputs[i], self.kernels[i, j], "full")
+                d_kernels[i, j] = sig.correlate2d(self.input[j], d_outputs[i], "valid")
+                d_inputs[j] = sig.convolve2d(d_outputs[i], self.kernels[i, j], "full")
 
         self.kernels -= learning_rate * d_kernels
         self.biases -= learning_rate * d_biases
