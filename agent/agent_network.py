@@ -1,8 +1,9 @@
 import sys
+import os
+sys.path.append("neuralnet")
 from cnn import Convolutional, Flatten # pylint: disable=import-error
 from nn import Layer, tanH, Sigmoid # pylint: disable=import-error
 
-sys.path.append("neuralnet")
 
 
 class AgentNetwork:
@@ -74,3 +75,11 @@ class AgentNetwork:
             output = layer.forward(output)
 
         return output
+    
+    def save_params(self):
+        if not os.path.exists(self.network_name):
+            os.makedirs(self.network_name)
+
+        for layer in self.network:
+                os.path.join(self.network_name, )
+                layer.save_params(self.network_name)
