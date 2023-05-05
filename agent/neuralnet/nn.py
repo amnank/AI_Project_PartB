@@ -6,31 +6,31 @@ class Layer:
     def __init__(self, input_size, neurons, name):
         self.name = f"FF-{name}"
         self.weights_shape = (neurons, input_size)
-        self.bias_shape = (neurons, 1)
+        self.biases_shape = (neurons, 1)
 
     def randomize_params(self):
         self.weights = np.random.randn(*self.weights_shape)
-        self.bias = np.random.randn(*self.bias_shape)
-
-    def load_params(self, network_name):
-        self.weights = np.load(f"{network_name}_{self.name}_weights.npy")
-        self.bias = np.load(f"{network_name}_{self.name}_biases.npy")
-
-    def save_params(self, network_name):
-        np.save( f"{network_name}_{self.name}_weights.npy", self.weights)
-        np.save( f"{network_name}_{self.name}_biases.npy", self.bias)
+        self.biases = np.random.randn(*self.biases_shape)
 
     def forward(self, layer_input):
         self.input = layer_input
-        return np.dot(self.weights, self.input) + self.bias
+        return np.dot(self.weights, self.input) + self.biases
 
     def backward(self, d_output, learning_rate):
         d_weights = np.dot(d_output, self.input.T)
         d_bias = d_output
 
         self.weights -= learning_rate * d_weights
-        self.bias -= learning_rate * d_bias
+        self.biases -= learning_rate * d_bias
         return np.dot(self.weights.T, d_output)
+    
+    def get_params(self):
+        return (self.weights, self.biases)
+    
+    def set_params(self, weights, biases):
+        self.weights = weights
+        self.biases = biases
+
 
 class Activation(Layer):
     """This class encapsulates the logic of an activation layer that applies an activation function
@@ -49,10 +49,10 @@ class Activation(Layer):
     def randomize_params(self):
         pass
 
-    def load_params(self, network_name):
-        pass
-
-    def save_params(self, network_name):
+    def get_params(self):
+        return None
+    
+    def set_params(self, weights, biases):
         pass
 
 class ReLU(Activation):

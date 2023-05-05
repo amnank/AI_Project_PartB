@@ -14,22 +14,11 @@ class Convolutional(Layer):
         self.input_shape = input_shape
         self.output_shape = (kernel_num, input_height - kernel_size + 1, input_width - kernel_size + 1)
         self.kernel_shape = (kernel_num, input_depth, kernel_size, kernel_size)
-    
-    def load_params(self, network_name):
-        #Read from File
-        # print(f"Loading {network_name}_{self.name}_weights.npy")
-        self.kernels = np.load(f"{network_name}_{self.name}_weights.npy")
-        # print(f"Loading {network_name}_{self.name}_biases.npy")
-        self.biases = np.load(f"{network_name}_{self.name}_biases.npy")
 
     def randomize_params(self):
         # Randomly Initialize
         self.kernels = np.random.randn(*self.kernel_shape)
         self.biases = np.random.randn(*self.output_shape)
-
-    def save_params(self, network_name):
-        np.save( f"{network_name}_{self.name}_weights.npy", self.kernels)
-        np.save( f"{network_name}_{self.name}_biases.npy", self.biases)
 
     def forward(self, layer_input):
         self.input = layer_input
@@ -54,6 +43,13 @@ class Convolutional(Layer):
         self.biases -= learning_rate * d_biases
 
         return d_inputs
+    
+    def get_params(self):
+        return (self.kernels, self.biases)
+    
+    def set_params(self, weights, biases):
+        self.kernels = weights
+        self.biases = biases
 
 
 class Flatten(Layer):
@@ -65,14 +61,14 @@ class Flatten(Layer):
     def randomize_params(self):
         pass
 
-    def load_params(self, network_name):
-        pass
-
-    def save_params(self, network_name):
-        pass
-
     def forward(self, layer_input):
         return np.reshape(layer_input, self.output_shape)
 
     def backward(self, d_output, learning_rate):
         return np.reshape(d_output, self.input_shape)
+    
+    def get_params(self):
+        return None
+    
+    def set_params(self, weights, biases):
+        pass

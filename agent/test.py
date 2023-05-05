@@ -123,4 +123,4 @@ network = AgentNetwork(hyper_params, "Network2")
 
 print(network.get_policy(inp))
 print(network.get_value(inp))
-# network.save_params()
+network.save_network()

@@ -1,8 +1,8 @@
 import sys
-import os
 sys.path.append("neuralnet")
 from cnn import Convolutional, Flatten # pylint: disable=import-error
 from nn import Layer, tanH, Sigmoid # pylint: disable=import-error
+from model_IO import save_model, load_model # pylint: disable=import-error
 
 
 
@@ -39,14 +39,12 @@ class AgentNetwork:
         self.network = [*self.shared, *self.policy_layers, *self.value_layers]
 
         # Initialize params in each layer
-        if (hyper_params["is_randomized"]):
-            for layer in self.network:
-                layer.randomize_params()
-
-        else:
+        for layer in self.network:
+            layer.randomize_params()
+        
+        if (hyper_params["is_randomized"] is False):
             #Load from files
-            for layer in self.network:
-                layer.load_params(hyper_params["load_network"])
+            load_model(self, hyper_params["load_network"])
 
     def process_shared(self, input_state):
         if input_state.shape != (self.input_depth, 7, 7):
@@ -76,10 +74,5 @@ class AgentNetwork:
 
         return output
     
-    def save_params(self):
-        if not os.path.exists(self.network_name):
-            os.makedirs(self.network_name)
-
-        for layer in self.network:
-                os.path.join(self.network_name, )
-                layer.save_params(self.network_name)
+    def save_network(self):
+        save_model(self)
