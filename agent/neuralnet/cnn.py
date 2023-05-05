@@ -17,8 +17,10 @@ class Convolutional(Layer):
     
     def load_params(self, network_name):
         #Read from File
-        self.kernels = np.load(f"{network_name}_{self.name}_kernels_.npy")
-        self.biases = np.load(f"{network_name}_{self.name}_biases_.npy")
+        # print(f"Loading {network_name}_{self.name}_weights.npy")
+        self.kernels = np.load(f"{network_name}_{self.name}_weights.npy")
+        # print(f"Loading {network_name}_{self.name}_biases.npy")
+        self.biases = np.load(f"{network_name}_{self.name}_biases.npy")
 
     def randomize_params(self):
         # Randomly Initialize
@@ -26,8 +28,8 @@ class Convolutional(Layer):
         self.biases = np.random.randn(*self.output_shape)
 
     def save_params(self, network_name):
-        np.save( f"{network_name}_{self.name}_weights_.npy", self.kernels)
-        np.save( f"{network_name}_{self.name}_biases_.npy", self.kernels)
+        np.save( f"{network_name}_{self.name}_weights.npy", self.kernels)
+        np.save( f"{network_name}_{self.name}_biases.npy", self.biases)
 
     def forward(self, layer_input):
         self.input = layer_input

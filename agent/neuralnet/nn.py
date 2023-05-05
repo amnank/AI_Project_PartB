@@ -9,8 +9,8 @@ class Layer:
         self.bias_shape = (neurons, 1)
 
     def randomize_params(self):
-        self.weights = np.random.randn(self.weights_shape)
-        self.bias = np.random.randn(self.bias_shape)
+        self.weights = np.random.randn(*self.weights_shape)
+        self.bias = np.random.randn(*self.bias_shape)
 
     def load_params(self, network_name):
         self.weights = np.load(f"{network_name}_{self.name}_weights.npy")
