@@ -1,9 +1,12 @@
-from nn import Layer # pylint: disable=import-error
+from nn import Layer  # pylint: disable=import-error
 import numpy as np
 import scipy.signal as sig
 
+
 class Convolutional(Layer):
-    def __init__(self, input_shape, kernel_size, kernel_num):
+    def __init__(self, input_shape, kernel_size, kernel_num, name):
+        self.name = f"Conv-{name}"
+
         input_depth, input_height, input_width = input_shape
 
         self.kernel_num = kernel_num
@@ -11,9 +14,20 @@ class Convolutional(Layer):
         self.input_shape = input_shape
         self.output_shape = (kernel_num, input_height - kernel_size + 1, input_width - kernel_size + 1)
         self.kernel_shape = (kernel_num, input_depth, kernel_size, kernel_size)
+    
+    def load_params(self, network_name):
+        #Read from File
+        self.kernels = np.load(f"{network_name}_{self.name}_kernels_.npy")
+        self.biases = np.load(f"{network_name}_{self.name}_biases_.npy")
 
+    def randomize_params(self):
+        # Randomly Initialize
         self.kernels = np.random.randn(*self.kernel_shape)
         self.biases = np.random.randn(*self.output_shape)
+
+    def save_params(self, network_name):
+        np.save( f"{network_name}_{self.name}_weights_.npy", self.kernels)
+        np.save( f"{network_name}_{self.name}_biases_.npy", self.kernels)
 
     def forward(self, layer_input):
         self.input = layer_input
@@ -39,10 +53,21 @@ class Convolutional(Layer):
 
         return d_inputs
 
+
 class Flatten(Layer):
     def __init__(self, input_shape, output_shape):
+        self.name = "Flatten"
         self.input_shape = input_shape
         self.output_shape = output_shape
+
+    def randomize_params(self):
+        pass
+
+    def load_params(self, network_name):
+        pass
+
+    def save_params(self, network_name):
+        pass
 
     def forward(self, layer_input):
         return np.reshape(layer_input, self.output_shape)
