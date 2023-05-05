@@ -1,4 +1,4 @@
-from nn import Layer
+from nn import Layer # pylint: disable=import-error
 import numpy as np
 import scipy.signal as sig
 

@@ -1,15 +1,15 @@
-from nn import *
-from cnn import *
+from nn import Layer, tanH, Sigmoid # pylint: disable=import-error
+from cnn import Convolutional, Flatten # pylint: disable=import-error
 import numpy as np
 
 network = [
-    Convolutional((1,10,10), 3, 3),
+    Convolutional((14,7,7), 3, 20),
     tanH(),
-    Convolutional((3,8,8), 3, 2),
+    Convolutional((20,5,5), 3, 20),
     tanH(),
-    Flatten((2,6,6), (72,1)),
-    Layer(72, 100),
-    ReLU()
+    Flatten((20,3,3), (180,1)),
+    Layer(180, 100),
+    Sigmoid()
 ]
 
 policy_layers = [
@@ -22,11 +22,12 @@ value_layers = [
     tanH()
 ]
 
-inp = np.random.randn(1, 10, 10)
+inp = np.random.randn(14, 7, 7)
 
 output = inp
 for layer in network:
     output = layer.forward(output)
+    print(output.shape)
 
 print("POLICY: ")
 policy = output

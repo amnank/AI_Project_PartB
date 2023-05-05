@@ -3,7 +3,7 @@
 
 from referee.game import \
     PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir
-
+from agent_board import AgentBoard, Cell # pylint: disable=import-error
 
 # This is the entry point for your game playing agent. Currently the agent
 # simply spawns a token at the centre of the board if playing as RED, and
@@ -23,6 +23,10 @@ class Agent:
             case PlayerColor.BLUE:
                 print("Testing: I am playing as blue")
 
+        self.board = AgentBoard()
+
+        
+
     def action(self, **referee: dict) -> Action:
         """
         Return the next action to take.
@@ -39,9 +43,7 @@ class Agent:
         Update the agent with the last player's action.
         """
         match action:
-            case SpawnAction(cell):
-                print(f"Testing: {color} SPAWN at {cell}")
-                pass
-            case SpreadAction(cell, direction):
-                print(f"Testing: {color} SPREAD from {cell}, {direction}")
-                pass
+            case SpawnAction():
+                self.board.handle_spawn(color, action)
+            case SpreadAction():
+                self.board.handle_spread(color, action)
