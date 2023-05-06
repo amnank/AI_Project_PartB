@@ -1,5 +1,5 @@
 from referee.game import \
-    PlayerColor, SpawnAction, SpreadAction, constants
+    PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants
 
 class AgentBoard:
     def __init__(self):
@@ -9,6 +9,23 @@ class AgentBoard:
             for _ in range(constants.BOARD_N):
                 col.append(Cell(None, 0))
             self.total_board.append(col)
+    
+    def get_valid_moves(self, player:'PlayerColor'):
+        actions = []
+        for r in range(constants.BOARD_N):
+            for q in range(constants.BOARD_N):
+                cell = self.total_board[r][q]
+                if cell.player is None:
+                    actions.append(SpawnAction(HexPos(r,q)))
+                elif cell.player == player:
+                    actions.append(SpreadAction(HexPos(r,q), HexDir.Down))
+                    actions.append(SpreadAction(HexPos(r,q), HexDir.DownLeft))
+                    actions.append(SpreadAction(HexPos(r,q), HexDir.DownRight))
+                    actions.append(SpreadAction(HexPos(r,q), HexDir.Up))
+                    actions.append(SpreadAction(HexPos(r,q), HexDir.UpLeft))
+                    actions.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
+        
+        return actions
 
     def handle_spawn(self, player, spawn_action:'SpawnAction'):
         self.total_board[spawn_action.cell.q][spawn_action.cell.r] = Cell(player, 1)

@@ -3,7 +3,7 @@ from agent_network import AgentNetwork # pylint: disable=import-error
 
 
 hyper_params = {
-    "is_randomized": False,
+    "is_randomized": True,
     "load_network": "Network1",
     "input_depth": 14
 }
@@ -119,7 +119,7 @@ inp = np.array([[[6, 3, 0, 6, 5, 1, 6],
         [4, 4, 4, 4, 6, 3, 6],
         [5, 6, 3, 3, 2, 3, 5],
         [4, 0, 6, 0, 6, 5, 3]]])
-network = AgentNetwork(hyper_params, "Network2")
+network = AgentNetwork(hyper_params, "Network1")
 
 print(network.get_policy(inp))
 print(network.get_value(inp))
