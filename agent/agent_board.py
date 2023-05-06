@@ -4,6 +4,7 @@ from referee.game import \
 class AgentBoard:
     def __init__(self):
         self.total_board = []
+        self.moves_played = 0
         for _ in range(constants.BOARD_N):
             col = []
             for _ in range(constants.BOARD_N):
@@ -12,20 +13,31 @@ class AgentBoard:
     
     def get_valid_moves(self, player:'PlayerColor'):
         actions = []
-        for r in range(constants.BOARD_N):
+        total_power = self.count_total_power()
+        for rizz in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
+                cell = self.total_board[rizz][q]
                 if cell.player is None:
-                    actions.append(SpawnAction(HexPos(r,q)))
+                    if (total_power < constants.MAX_TOTAL_POWER):
+                        actions.append(SpawnAction(HexPos(rizz,q)))
                 elif cell.player == player:
-                    actions.append(SpreadAction(HexPos(r,q), HexDir.Down))
-                    actions.append(SpreadAction(HexPos(r,q), HexDir.DownLeft))
-                    actions.append(SpreadAction(HexPos(r,q), HexDir.DownRight))
-                    actions.append(SpreadAction(HexPos(r,q), HexDir.Up))
-                    actions.append(SpreadAction(HexPos(r,q), HexDir.UpLeft))
-                    actions.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
+                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.Down))
+                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.DownLeft))
+                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.DownRight))
+                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.Up))
+                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.UpLeft))
+                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.UpRight))
         
         return actions
+    
+    def handle_action(self, player, action):
+        self.moves_played += 1
+        match action:
+            case SpawnAction():
+                self.handle_spawn(player, action)
+            case SpreadAction():
+                self.handle_spread(player, action)
+
 
     def handle_spawn(self, player, spawn_action:'SpawnAction'):
         self.total_board[spawn_action.cell.q][spawn_action.cell.r] = Cell(player, 1)
@@ -40,6 +52,9 @@ class AgentBoard:
             self.total_board[cell.q][cell.r].perform_spread(player)
 
     def get_game_ended(self):
+        if (self.moves_played == constants.MAX_TURNS):
+            return 0
+
         red = False
         blue = False
 
@@ -52,10 +67,13 @@ class AgentBoard:
                     blue = True
 
         if (red and not blue):
+            # Red win
             return int(PlayerColor.RED)
         elif (not red and blue):
+            # Blue win
             return int(PlayerColor.BLUE)
         elif (not red and not blue):
+            # Draw
             return 0
         else:
             # Game in progress
@@ -103,6 +121,15 @@ class AgentBoard:
             board.append(col)
 
         return board
+    
+    def count_total_power(self):
+        total_power = 0
+        for r in range(constants.BOARD_N):
+            for q in range(constants.BOARD_N):
+                cell = self.total_board[r][q]
+                total_power += cell.power
+        
+        return total_power
 
 class Cell:
     def __init__(self, player:'PlayerColor|None', power):
@@ -113,9 +140,6 @@ class Cell:
         self.power += 1
         self.player = spreading_player
 
-        if self.power >  6:
+        if self.power >  constants.MAX_CELL_POWER:
             self.power = 0
             self.player = None
-
-
-        

@@ -25,8 +25,6 @@ class Agent:
 
         self.board = AgentBoard()
 
-        
-
     def action(self, **referee: dict) -> Action:
         """
         Return the next action to take.
@@ -42,8 +40,4 @@ class Agent:
         """
         Update the agent with the last player's action.
         """
-        match action:
-            case SpawnAction():
-                self.board.handle_spawn(color, action)
-            case SpreadAction():
-                self.board.handle_spread(color, action)
+        self.board.handle_action(color, action)
