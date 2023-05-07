@@ -31,19 +31,35 @@ class AgentBoard:
         
         return actions
     
-    def handle_action(self, player, action):
+    def is_valid_move(self, player, action):
+        cell = self.total_board[action.cell.r][action.cell.q]
+        total_power = self.count_total_power()
+        
+        match action:
+            case SpawnAction():
+                if cell.player is None and (total_power < constants.MAX_TOTAL_POWER):
+                    return True
+                else:
+                    return False
+            case SpreadAction():
+                if cell.player == player:
+                    return True
+                else:
+                    return False
+    
+    def handle_valid_action(self, player, action):
         self.moves_played += 1
         match action:
             case SpawnAction():
-                self.handle_spawn(player, action)
+                self._handle_spawn(player, action)
             case SpreadAction():
-                self.handle_spread(player, action)
+                self._handle_spread(player, action)
 
 
-    def handle_spawn(self, player, spawn_action:'SpawnAction'):
+    def _handle_spawn(self, player, spawn_action:'SpawnAction'):
         self.total_board[spawn_action.cell.q][spawn_action.cell.r] = Cell(player, 1)
 
-    def handle_spread(self, player, spread_action:'SpreadAction'):
+    def _handle_spread(self, player, spread_action:'SpreadAction'):
         spread_cell_power = self.total_board[spread_action.cell.q][spread_action.cell.r].power
         spread_direction = spread_action.direction
         cell = spread_action.cell
@@ -51,6 +67,8 @@ class AgentBoard:
         for _ in range(spread_cell_power):
             cell += spread_direction
             self.total_board[cell.q][cell.r].perform_spread(player)
+        
+        spread_action.cell = Cell(None, 0)
 
     def get_game_ended(self):
         if (self.moves_played == constants.MAX_TURNS):
