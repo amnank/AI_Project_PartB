@@ -1,3 +1,4 @@
+import numpy as np
 from referee.game import \
     PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants
 
@@ -88,6 +89,22 @@ class AgentBoard:
                 cell = self.total_board[r][q]
                 if cell.player == player:
                     col.append(cell.power)
+                elif cell.player == player.opponent:
+                    col.append(-1 * cell.power)
+                else:
+                    col.append(0)
+            board.append(col)
+
+        return board
+    
+    def get_player_board(self, player:PlayerColor):
+        board = []
+        for r in range(constants.BOARD_N):
+            col = []
+            for q in range(constants.BOARD_N):
+                cell = self.total_board[r][q]
+                if cell.player == player:
+                    col.append(cell.power)
                 else:
                     col.append(0)
             board.append(col)
@@ -130,6 +147,37 @@ class AgentBoard:
                 total_power += cell.power
         
         return total_power
+    
+
+def get_symmetries(board):
+    symmetries = []
+    symmetries.append(board)
+
+    brd = np.array(board)
+
+    # Add 90 degree clockwise rotation
+    symmetries.append(np.rot90(brd, k=-1).tolist())
+
+    # Add 180 degree clockwise rotation
+    symmetries.append(np.rot90(brd, k=-2).tolist())
+    
+    # Add 270 degree clockwise rotation
+    symmetries.append(np.rot90(brd, k=-3).tolist())
+    
+    # Add horizontal flip
+    symmetries.append(np.fliplr(brd).tolist())
+    
+    # Add vertical flip
+    symmetries.append(np.flipud(brd).tolist())
+    
+    # Add diagonal flip
+    symmetries.append(np.fliplr(np.rot90(brd)).tolist())
+    
+    # Add anti-diagonal flip
+    symmetries.append(np.rot90(np.fliplr(brd)).tolist())
+
+    return symmetries
+
 
 class Cell:
     def __init__(self, player:'PlayerColor|None', power):
