@@ -3,7 +3,7 @@
 
 from referee.game import \
     PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir
-from .agent_board import AgentBoard
+from .agent_game import AgentGame
 from .agent_network import AgentNetwork
 
 # This is the entry point for your game playing agent. Currently the agent
@@ -30,7 +30,7 @@ class Agent:
             "input_depth": 14
         }
 
-        self.board = AgentBoard()
+        self.board = AgentGame()
         self.network = AgentNetwork(hyper_params, "Network1")
 
     def action(self, **referee: dict) -> Action:

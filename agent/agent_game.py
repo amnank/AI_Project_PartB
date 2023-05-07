@@ -2,7 +2,10 @@ import numpy as np
 from referee.game import \
     PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants
 
-class AgentBoard:
+class AgentGame:
+    """The class encapsulates the logic of the internal representation of the
+    Agent's game state
+    """
     def __init__(self):
         self.total_board = []
         self.moves_played = 0
@@ -13,6 +16,14 @@ class AgentBoard:
             self.total_board.append(col)
     
     def get_valid_moves(self, player:'PlayerColor'):
+        """Generates a list of valid action from this board state
+
+        Args:
+            player (PlayerColor): The phasing player
+
+        Returns:
+            [actions]: Valid actions
+        """
         actions = []
         total_power = self.count_total_power()
         for rizz in range(constants.BOARD_N):
@@ -31,7 +42,16 @@ class AgentBoard:
         
         return actions
     
-    def is_valid_move(self, player, action):
+    def is_valid_move(self, player, action) -> bool:
+        """Returns whether an action made by a player is valid or not
+
+        Args:
+            player (PlayerColor): The phasing player
+            action (SpawnAction | SpreadAction): The action
+
+        Returns:
+            bool: is_valid
+        """
         cell = self.total_board[action.cell.r][action.cell.q]
         total_power = self.count_total_power()
         
@@ -48,6 +68,12 @@ class AgentBoard:
                     return False
     
     def handle_valid_action(self, player, action):
+        """Handles the effects of a valid action on the board
+
+        Args:
+            player (PlayerColor): The player making the action
+            action (SpawnAction | SpreadAction): The action
+        """
         self.moves_played += 1
         match action:
             case SpawnAction():
@@ -70,7 +96,12 @@ class AgentBoard:
         
         spread_action.cell = Cell(None, 0)
 
-    def get_game_ended(self):
+    def get_game_ended(self) -> 'int|None':
+        """Returns the final value of the game (+1, 0, -1) if ended, else None
+
+        Returns:
+            int|None: The value of the game state
+        """
         if (self.moves_played == constants.MAX_TURNS):
             return 0
 
@@ -99,7 +130,16 @@ class AgentBoard:
             return None
             
 
-    def get_canonical_board(self, player:PlayerColor):
+    def get_canonical_board(self, player:PlayerColor) -> list(int):
+        """Returns the board with player cells having +ve power,
+        and opponent cells having -ve power
+
+        Args:
+            player (PlayerColor): The phasing player
+
+        Returns:
+            List[Cell]: The board
+        """
         board = []
         for r in range(constants.BOARD_N):
             col = []
@@ -115,7 +155,16 @@ class AgentBoard:
 
         return board
     
-    def get_player_board(self, player:PlayerColor):
+    def get_player_board(self, player:PlayerColor) -> list(int):
+        """Returns the board with only the phasing player's cells, all other
+        cells are 0
+
+        Args:
+            player (PlayerColor): The phasing player
+
+        Returns:
+            list(int): The board
+        """
         board = []
         for r in range(constants.BOARD_N):
             col = []
@@ -129,7 +178,12 @@ class AgentBoard:
 
         return board
     
-    def get_empty_spaces(self):
+    def get_empty_spaces(self) -> list(int):
+        """Returns the board with empty cells having a value of 1, else 0
+
+        Returns:
+            list(int): The board
+        """
         board = []
         for r in range(constants.BOARD_N):
             col = []
@@ -143,7 +197,17 @@ class AgentBoard:
 
         return board
     
-    def get_player_power_board(self, power, player:'PlayerColor'):
+    def get_player_power_board(self, power, player:'PlayerColor') -> list(int):
+        """Returns the board where only cells having a particular power of the
+        phasing player are included, else 0
+
+        Args:
+            power (int): The power to be included
+            player (PlayerColor): The phasing player
+            
+        Returns:
+            list(int): Board
+        """
         board = []
         for r in range(constants.BOARD_N):
             col = []
@@ -157,7 +221,12 @@ class AgentBoard:
 
         return board
     
-    def count_total_power(self):
+    def count_total_power(self) -> int:
+        """Returns the total power of all cells on the board
+
+        Returns:
+            int: The total power
+        """
         total_power = 0
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
@@ -168,6 +237,16 @@ class AgentBoard:
     
 
 def get_symmetries(board):
+    """Takes a board state and generates a list containing the 90 degree, 180 degree
+    and 270 degree rotations, as well as the horizontal, vertical, diagonal and anti-diagonal
+    flips.
+
+    Args:
+        board (list(int)): The board state
+
+    Returns:
+        list(list(int)): List of board states
+    """
     symmetries = []
     symmetries.append(board)
 
@@ -202,7 +281,7 @@ class Cell:
         self.player = player
         self.power = power
 
-    def perform_spread(self, spreading_player:'PlayerColor'):
+    def _perform_spread(self, spreading_player:'PlayerColor'):
         self.power += 1
         self.player = spreading_player
 
