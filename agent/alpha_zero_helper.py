@@ -79,18 +79,18 @@ def get_symmetries(board):
     brd = np.array(board)
 
     # Add 90 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-1).tolist())
+    symmetries.append(np.rot90(brd, k=-1))
     # Add 180 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-2).tolist())
+    symmetries.append(np.rot90(brd, k=-2))
     # Add 270 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-3).tolist())
+    symmetries.append(np.rot90(brd, k=-3))
     # Add horizontal flip
-    symmetries.append(np.fliplr(brd).tolist())
+    symmetries.append(np.fliplr(brd))
     # Add vertical flip
-    symmetries.append(np.flipud(brd).tolist())
+    symmetries.append(np.flipud(brd))
     # Add diagonal flip
-    symmetries.append(np.fliplr(np.rot90(brd)).tolist())    
+    symmetries.append(np.fliplr(np.rot90(brd)))
     # Add anti-diagonal flip
-    symmetries.append(np.rot90(np.fliplr(brd)).tolist())
+    symmetries.append(np.rot90(np.fliplr(brd)))
 
     return symmetries

@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from agent_network import AgentNetwork        # pylint: disable=import-error
-from alpha_zero_helper import policy_actions , create_input, sample_policy   # pylint: disable=import-error
+from alpha_zero_helper import policy_actions , get_symmetries, create_input, sample_policy   # pylint: disable=import-error
 from infexion_logic import InfexionGame, GameBoard             # pylint: disable=import-error
 from referee.game import \
     PlayerColor, SpawnAction, SpreadAction
@@ -229,6 +229,8 @@ class SelfPlay:
             example[2] = 1 if (int(example[2]) == val) else (0 if val == 0 else -1)
         
         examples_tuples = [tuple(example) for example in examples]
+
+        # Implement symmetries
 
         return examples_tuples
     
