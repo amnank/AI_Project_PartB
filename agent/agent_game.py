@@ -1,4 +1,5 @@
 import numpy as np
+from alpha_zero_helper import policy_actions # pylint: disable=import-error
 from referee.game import \
     PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants
 
@@ -42,7 +43,26 @@ class AgentGame:
         
         return actions
     
-    def is_valid_move(self, player, action) -> bool:
+    def valid_action_mask(self, player:'PlayerColor'):
+        """This function creates a 343 x 1 vector corresponding to
+        alpha_zero_helper.policy_actions with all the valid moves
+
+        Args:
+            player (PlayerColor): The phasing player
+
+        Returns:
+            343 x 1 list: One hot encoded valid moves
+        """
+        mask = []
+        for action in policy_actions:
+            if self._is_valid_move(player, action):
+                mask.append(1)
+            else:
+                mask.append(0)
+
+        return mask
+    
+    def _is_valid_move(self, player, action) -> bool:
         """Returns whether an action made by a player is valid or not
 
         Args:
