@@ -1,22 +1,12 @@
-import numpy as np
 from alpha_zero_helper import policy_actions # pylint: disable=import-error
 from referee.game import \
     PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants
 
-class AgentGame:
-    """The class encapsulates the logic of the internal representation of the
-    Agent's game state
+class InfexionGame:
+    """The class encapsulates the logic of the Infexion game
     """
-    def __init__(self):
-        self.total_board = []
-        self.moves_played = 0
-        for _ in range(constants.BOARD_N):
-            col = []
-            for _ in range(constants.BOARD_N):
-                col.append(Cell(None, 0))
-            self.total_board.append(col)
     
-    def get_valid_moves(self, player:'PlayerColor'):
+    def get_valid_moves(self, game_board:'GameBoard', player:'PlayerColor'):
         """Generates a list of valid action from this board state
 
         Args:
@@ -26,10 +16,10 @@ class AgentGame:
             [actions]: Valid actions
         """
         actions = []
-        total_power = self.count_total_power()
+        total_power = game_board.count_total_power()
         for rizz in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
-                cell = self.total_board[rizz][q]
+                cell = game_board[rizz][q]
                 if cell.player is None:
                     if (total_power < constants.MAX_TOTAL_POWER):
                         actions.append(SpawnAction(HexPos(rizz,q)))
@@ -43,7 +33,7 @@ class AgentGame:
         
         return actions
     
-    def valid_action_mask(self, player:'PlayerColor'):
+    def valid_action_mask(self, game_board:'GameBoard', player:'PlayerColor'):
         """This function creates a 343 x 1 vector corresponding to
         alpha_zero_helper.policy_actions with all the valid moves
 
@@ -55,14 +45,14 @@ class AgentGame:
         """
         mask = []
         for action in policy_actions:
-            if self._is_valid_move(player, action):
+            if self.is_valid_move(game_board, player, action):
                 mask.append(1)
             else:
                 mask.append(0)
 
         return mask
     
-    def _is_valid_move(self, player, action) -> bool:
+    def is_valid_move(self, game_board:'GameBoard', player, action) -> bool:
         """Returns whether an action made by a player is valid or not
 
         Args:
@@ -72,8 +62,8 @@ class AgentGame:
         Returns:
             bool: is_valid
         """
-        cell = self.total_board[action.cell.r][action.cell.q]
-        total_power = self.count_total_power()
+        cell = game_board.total_board[action.cell.r][action.cell.q]
+        total_power = game_board.count_total_power()
         
         match action:
             case SpawnAction():
@@ -87,6 +77,64 @@ class AgentGame:
                 else:
                     return False
     
+
+    def get_game_ended(self, game_board:'GameBoard') -> 'int|None':
+        """Returns the final value of the game (+1, 0, -1) if ended, else None
+
+        Returns:
+            int|None: The value of the game state
+        """
+        if game_board.moves_played == constants.MAX_TURNS:
+            return 0
+        
+        if game_board.moves_played == 0:
+            return None
+
+        red = False
+        blue = False
+
+        for r in range(constants.BOARD_N):
+            for q in range(constants.BOARD_N):
+                cell = game_board.total_board[r][q]
+                if cell.player == PlayerColor.RED:
+                    red = True
+                if cell.player == PlayerColor.BLUE:
+                    blue = True
+
+        if (red and not blue):
+            # Red win
+            return int(PlayerColor.RED)
+        elif (not red and blue):
+            # Blue win
+            return int(PlayerColor.BLUE)
+        elif (not red and not blue):
+            # Draw
+            return 0
+        else:
+            # Game in progress
+            return None
+
+
+class GameBoard:
+    """This class encapsulates the logic of an Infexion game state
+    """
+    def __init__(self, other_game_board:'GameBoard|None'=None):
+        self.moves_played = 0
+        if other_game_board is None:
+            self.total_board = []
+            for _ in range(constants.BOARD_N):
+                col = []
+                for _ in range(constants.BOARD_N):
+                    col.append(Cell(None, 0))
+                self.total_board.append(col)
+        else:
+            self.total_board = []
+            for r in range(constants.BOARD_N):
+                col = []
+                for q in range(constants.BOARD_N):
+                    col.append(other_game_board.total_board[r][q])
+                self.total_board.append(col)
+
     def handle_valid_action(self, player, action):
         """Handles the effects of a valid action on the board
 
@@ -115,41 +163,7 @@ class AgentGame:
             self.total_board[cell.q][cell.r].perform_spread(player)
         
         spread_action.cell = Cell(None, 0)
-
-    def get_game_ended(self) -> 'int|None':
-        """Returns the final value of the game (+1, 0, -1) if ended, else None
-
-        Returns:
-            int|None: The value of the game state
-        """
-        if (self.moves_played == constants.MAX_TURNS):
-            return 0
-
-        red = False
-        blue = False
-
-        for r in range(constants.BOARD_N):
-            for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
-                if cell.player == PlayerColor.RED:
-                    red = True
-                if cell.player == PlayerColor.BLUE:
-                    blue = True
-
-        if (red and not blue):
-            # Red win
-            return int(PlayerColor.RED)
-        elif (not red and blue):
-            # Blue win
-            return int(PlayerColor.BLUE)
-        elif (not red and not blue):
-            # Draw
-            return 0
-        else:
-            # Game in progress
-            return None
-            
-
+        
     def get_canonical_board(self, player:PlayerColor) -> list(int):
         """Returns the board with player cells having +ve power,
         and opponent cells having -ve power
@@ -158,7 +172,7 @@ class AgentGame:
             player (PlayerColor): The phasing player
 
         Returns:
-            List[Cell]: The board
+            list(int): The board
         """
         board = []
         for r in range(constants.BOARD_N):
@@ -254,47 +268,6 @@ class AgentGame:
                 total_power += cell.power
         
         return total_power
-    
-
-def get_symmetries(board):
-    """Takes a board state and generates a list containing the 90 degree, 180 degree
-    and 270 degree rotations, as well as the horizontal, vertical, diagonal and anti-diagonal
-    flips.
-
-    Args:
-        board (list(int)): The board state
-
-    Returns:
-        list(list(int)): List of board states
-    """
-    symmetries = []
-    symmetries.append(board)
-
-    brd = np.array(board)
-
-    # Add 90 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-1).tolist())
-
-    # Add 180 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-2).tolist())
-    
-    # Add 270 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-3).tolist())
-    
-    # Add horizontal flip
-    symmetries.append(np.fliplr(brd).tolist())
-    
-    # Add vertical flip
-    symmetries.append(np.flipud(brd).tolist())
-    
-    # Add diagonal flip
-    symmetries.append(np.fliplr(np.rot90(brd)).tolist())
-    
-    # Add anti-diagonal flip
-    symmetries.append(np.rot90(np.fliplr(brd)).tolist())
-
-    return symmetries
-
 
 class Cell:
     def __init__(self, player:'PlayerColor|None', power):
