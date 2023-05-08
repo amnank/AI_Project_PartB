@@ -8,13 +8,13 @@ class AgentGame:
     Agent's game state
     """
     def __init__(self):
-        self.total_board = []
+        self._total_board = []
         self.moves_played = 0
         for _ in range(constants.BOARD_N):
             col = []
             for _ in range(constants.BOARD_N):
                 col.append(Cell(None, 0))
-            self.total_board.append(col)
+            self._total_board.append(col)
     
     def get_valid_moves(self, player:'PlayerColor'):
         """Generates a list of valid action from this board state
@@ -29,7 +29,7 @@ class AgentGame:
         total_power = self.count_total_power()
         for rizz in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
-                cell = self.total_board[rizz][q]
+                cell = self._total_board[rizz][q]
                 if cell.player is None:
                     if (total_power < constants.MAX_TOTAL_POWER):
                         actions.append(SpawnAction(HexPos(rizz,q)))
@@ -72,7 +72,7 @@ class AgentGame:
         Returns:
             bool: is_valid
         """
-        cell = self.total_board[action.cell.r][action.cell.q]
+        cell = self._total_board[action.cell.r][action.cell.q]
         total_power = self.count_total_power()
         
         match action:
@@ -103,16 +103,16 @@ class AgentGame:
 
 
     def _handle_spawn(self, player, spawn_action:'SpawnAction'):
-        self.total_board[spawn_action.cell.q][spawn_action.cell.r] = Cell(player, 1)
+        self._total_board[spawn_action.cell.q][spawn_action.cell.r] = Cell(player, 1)
 
     def _handle_spread(self, player, spread_action:'SpreadAction'):
-        spread_cell_power = self.total_board[spread_action.cell.q][spread_action.cell.r].power
+        spread_cell_power = self._total_board[spread_action.cell.q][spread_action.cell.r].power
         spread_direction = spread_action.direction
         cell = spread_action.cell
 
         for _ in range(spread_cell_power):
             cell += spread_direction
-            self.total_board[cell.q][cell.r].perform_spread(player)
+            self._total_board[cell.q][cell.r].perform_spread(player)
         
         spread_action.cell = Cell(None, 0)
 
@@ -130,7 +130,7 @@ class AgentGame:
 
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
+                cell = self._total_board[r][q]
                 if cell.player == PlayerColor.RED:
                     red = True
                 if cell.player == PlayerColor.BLUE:
@@ -158,13 +158,13 @@ class AgentGame:
             player (PlayerColor): The phasing player
 
         Returns:
-            List[Cell]: The board
+            list(int): The board
         """
         board = []
         for r in range(constants.BOARD_N):
             col = []
             for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
+                cell = self._total_board[r][q]
                 if cell.player == player:
                     col.append(cell.power)
                 elif cell.player == player.opponent:
@@ -189,7 +189,7 @@ class AgentGame:
         for r in range(constants.BOARD_N):
             col = []
             for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
+                cell = self._total_board[r][q]
                 if cell.player == player:
                     col.append(cell.power)
                 else:
@@ -208,7 +208,7 @@ class AgentGame:
         for r in range(constants.BOARD_N):
             col = []
             for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
+                cell = self._total_board[r][q]
                 if cell.player is None:
                     col.append(1)
                 else:
@@ -232,7 +232,7 @@ class AgentGame:
         for r in range(constants.BOARD_N):
             col = []
             for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
+                cell = self._total_board[r][q]
                 if cell.player == player and cell.power == power:
                     col.append(cell.power)
                 else:
@@ -250,7 +250,7 @@ class AgentGame:
         total_power = 0
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
+                cell = self._total_board[r][q]
                 total_power += cell.power
         
         return total_power
