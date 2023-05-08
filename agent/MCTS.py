@@ -4,40 +4,25 @@ import scipy
 from agent.neuralnet import AgentNetwork
 import torch.optim as optim
 
+args = {'num_MCTS_simulations': 50,
+         'C': 1
+        }        # some hyperparameters
 
 class Node:
     """
     This is the Node class (represents a node in the search tree)
     """
 
-    def __init__(self, game, args, state, parent=None, action_taken=None, prior = 0, player):
+    def __init__(self, game, player, prior = 0):
 
         self.player = player
         self.game = game
-        self.args = args                  # some hyperparameters
-        self.state = state                # the board state at this Node
-        self.parent = parent              # HMMM
-        self.action_taken = action_taken
-        
 
-        self.children = {}                # All legal children that can be reached
-
-        self.visit_count = 0              # N - Number of times thus node was visited in MCTS
+        self.visit_count = 0              # number of times thus node was visited in MCTS
         self.value_sum = 0     
-        self.prior = prior           
-    
-    
-    def value(self):
-        """
-        Average value for a node
-        """
-    
-        if self.visit_count == 0:
-            value = 0
-        else:
-            value = self.value_sum / self.visit_count
-        
-        return value
+        self.prior = prior                # prior probability
+
+        self.children = {}                # All legal children that can be reached    
     
 
     def is_fully_expanded(self) -> bool:
@@ -53,21 +38,19 @@ class Node:
         """
 
         best_score = -np.inf
-        best_action = -1
-        best_child = None
 
         for action, child in self.children.items():
             score = self.ucb_score(self, child)
 
             if score > best_score:
-                best_score = score
                 best_action = action
+                best_score = score
                 best_child = child
         
         return best_action, best_child
     
        
-    def get_ucb(self, child):
+    def ucb_score(self, child):
         """
         Calculates UCB score
         """
@@ -81,67 +64,64 @@ class Node:
         return q_value + self.args['C'] * math.sqrt(math.log(self.visit_count) /  child.visit_count) * child.prior
     
 
-    def expand(self, state, player, policy):
+    def expand(self, action_probs):
         """
         We expand a node and keep track of the prior policy probability given by the neural network.
         """
-        self.player = player
-        self.state = state
 
-        for action, prob in enumerate(policy):
+        for action, prob in enumerate(action_probs):
+            self.game.handle_valid_action(self.player, action)
+            next_state = self.game.get_canonical_board
+
             # checks valid move (won't actually ever be zero)
             if prob != 0:
-                self.children[action] = Node(prior=prob, player=self.player * -1) # player switcher
-
-
-    def backpropagate(self, value):
-        self.value_sum += value
-        self.visit_count += 1
-
-        value = self.game.get_opponent_value(value)
-        if self.parent is not None:
-            self.parent.backpropagate(value)
+                self.children[action] = Node(prior=prob, player=self.player * -1, state=next_state) # player switcher
 
 
 class MCTS:
 
-    def __init__(self, game, args, network):
+    def __init__(self, game, network):
 
-        self.args = args    # hyperparameters (will fix later)
-        self.game = game    # the Infexion game
-        self.network = network  # neuralnet 
+        self.game = game        # the Game
+        self.network = network  # Neural Network 
 
 
-    def search(self, model, state, player):
+    def run(self, network, state, player):
         
-        root = Node(self.game, self.args, state)
-
-        # EXPAND:
-
-        policy, value = model.get_policy(state), model.get_value(state)
-        valid_moves = self.game.get_valid_moves(state, player)
+        root = Node(self.game, player, prior = 0)
+        value, policy = network.get_value, network.get_policy
         
-        # figure out how to mask invalid moves
-        # will have to alter policy vector 
-        
+        # expand the root to get the children
         root.expand(state, player, policy)
 
-        for _ in range(self.args['num_simulations']):      # This is set to 1600 in the research paper
+        # iterate through simulations
+        for _ in range(self.args['num_MCTS_simulations']):      # This is set to 1600 in the research paper
             node = root
-            search_path = [node]
+            path = [node]
 
-            # SELECT
+            # keep selecting next child until we reach an unexpanded node 
             while node.is_fully_expanded():
                 action, node = node.select_child()
-                search_path.append(node)
+                path.append(node)
             
-            parent = search_path[-2]
-            state = parent.state
+            # once we reach a leaf node:
+            value = self.game.get_game_ended
 
-            # Now we're at the leaf node and we would like to expand
+            if value is None:
+                # game is not over, get value from network and expand
+                value, policy =  network.get_value, network.get_policy
+                node.expand(policy)
+
+            # backup the value
+            for node in path:
+                node.value += value
+                node.visits += 1
+
+
+        
 
             # Players always play from their own perspective
-            next_state, _ = self.game.get_next_state(state, player, action)
+            next_state, _ = self.game.handle_action(state, player, action)
             
             # get board from perspective of other player
             next_state = self.game.get_canonical_board(next_state, player = -1)
@@ -186,10 +166,16 @@ class AlphaZero:
         self.args = args
         self.mcts = MCTS(game, args, model)
 
-        def self_play(self):
-            model = AgentNetwork()
-            training_data = []
+        def train(game, n_epochs):
+            for epoch in range(n_epochs):
+                # collect training data by self_play
+                examples = []
+                for 
 
+
+
+        def self_play(self):
+            training_data = []
 
             player = []
             state = self.game.get_initial_state()
