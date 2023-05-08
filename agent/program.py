@@ -3,7 +3,7 @@
 
 from referee.game import \
     PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir, constants
-from .agent_game import AgentGame, get_symmetries
+from .infexion_logic import InfexionGame
 from .agent_network import AgentNetwork
 from .alpha_zero_helper import create_input, sample_policy
 
@@ -31,7 +31,7 @@ class Agent:
             "input_depth": 14
         }
 
-        self.board = AgentGame()
+        self.board = InfexionGame()
         self.network = AgentNetwork(hyper_params, "Network1")
 
     def action(self, **referee: dict) -> Action:
@@ -48,4 +48,4 @@ class Agent:
         """
         Update the agent with the last player's action.
         """
-        self.board.handle_valid_action(color, action)
+        
