@@ -18,7 +18,6 @@ class StochasticGradientDescent:
             params[i] -= self.learning_rate * self.velocities[i]
 
 
-
     def loss_function(pred_value, true_value, pred_policy, true_search_policy, parameters, c=1e-4):
         """
         Computes the loss function for AlphaZero self-play reinforcement learning algorithm.

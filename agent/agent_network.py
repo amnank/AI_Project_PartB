@@ -5,6 +5,7 @@ from neuralnet.nn import Layer, tanH, Sigmoid # pylint: disable=import-error
 from neuralnet.model_IO import save_model, load_model # pylint: disable=import-error
 import numpy as np
 import torch
+from sgd import StochasticGradientDescent
 
 
 class AgentNetwork:
@@ -16,8 +17,8 @@ class AgentNetwork:
     def __init__(self, hyper_params, network_name):
         self.network_name = network_name
         self.input_depth = hyper_params["input_depth"]
+        self.optimizer = StochasticGradientDescent()
         
-
         # Create network
         self.shared = [
             Convolutional((self.input_depth,7,7), 3, 20, "Shared1"),
@@ -76,7 +77,7 @@ class AgentNetwork:
 
         return output
     
-    
+
     def get_params(self):
         params = []
         for layer in self.network:
