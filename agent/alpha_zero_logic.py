@@ -2,7 +2,7 @@ import math
 import numpy as np
 from agent_network import AgentNetwork        # pylint: disable=import-error
 from alpha_zero_helper import\
-    policy_actions , get_symmetries, create_input, sample_policy, greedy_select_from_policy   # pylint: disable=import-error
+    policy_actions , get_symmetries, create_input, sample_policy, greedy_select_from_policy, get_policy_symmetries   # pylint: disable=import-error
 from infexion_logic import InfexionGame, GameBoard             # pylint: disable=import-error
 from referee.game import \
     PlayerColor, SpawnAction, SpreadAction
@@ -252,11 +252,13 @@ class SelfPlay:
         sym_examples = []
         # Implement symmetries
         for example in examples:
-            sym_list = [get_symmetries(inp) for inp in example[0]]
-            sym_list = np.transpose(sym_list, (1, 0, 2, 3))
-            for variation in sym_list:
+            inp_sym_list = [get_symmetries(inp) for inp in example[0]]
+            inp_sym_list = np.transpose(inp_sym_list, (1, 0, 2, 3))
+            policy_sym_list = get_policy_symmetries(example[1])
+
+            for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
                 # Add policy symmetries
-                sym_examples.append([variation, example[1], example[2]])
+                sym_examples.append([inp_var, policy_var, example[2]])
 
         examples_tuples = [tuple(example) for example in examples]
 
