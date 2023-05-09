@@ -1,7 +1,7 @@
 import numpy as np
+from infexion_logic import GameBoard # pylint: disable=import-error
 from referee.game import \
     PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants
-from infexion_logic import InfexionGame, GameBoard # pylint: disable=import-error
 
 policy_actions = []
 for q in range(constants.BOARD_N):
@@ -19,6 +19,15 @@ for q in range(constants.BOARD_N):
 
 
 def get_policy_symmetries(policy):
+    """This function returns the list of symmetries of a policy vector,
+    to ensure that it stays consistent with rotations of the input board
+
+    Args:
+        policy (343 x 1 list): Policies
+
+    Returns:
+        list(policies): List of symmetries
+    """
     spawn_policy = policy[:49]
     spread_policy = policy[49:]
 
