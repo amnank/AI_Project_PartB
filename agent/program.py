@@ -3,9 +3,10 @@
 
 from referee.game import \
     PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir, constants
-from .infexion_logic import InfexionGame
+from .infexion_logic import InfexionGame, GameBoard
 from .agent_network import AgentNetwork
 from .alpha_zero_helper import create_input, sample_policy
+from .alpha_zero_logic import MCTS
 
 # This is the entry point for your game playing agent. Currently the agent
 # simply spawns a token at the centre of the board if playing as RED, and
@@ -26,26 +27,26 @@ class Agent:
                 print("Testing: I am playing as blue")
 
         hyper_params = {
-            "is_randomized": True,
-            "load_network": "Network1",
-            "input_depth": 14
+            "is_randomized": False,
+            "load_network": "insert_best_network_here",
+            "input_depth": 16
         }
 
-        self.board = InfexionGame()
-        self.network = AgentNetwork(hyper_params, "Network1")
+        self.network = AgentNetwork(hyper_params, "GameNet1")
+        self.mcts = MCTS(self_play_mode=False)
 
     def action(self, **referee: dict) -> Action:
         """
         Return the next action to take.
         """
-        inp = create_input(self._color, self.board)
-        policy = self.network.get_policy(inp)
-        action = sample_policy(policy)
 
+        action = self.mcts.run(self.network)
         return action
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
         Update the agent with the last player's action.
         """
+        if color == self._color.opponent:
+            self.mcts.update_state(action)
         

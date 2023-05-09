@@ -104,7 +104,7 @@ class MCTS:
         self.self_play_mode = self_play_mode
 
 
-    def run(self, network:'AgentNetwork', last_action_taken:'SpreadAction|SpawnAction|None'=None):
+    def run(self, network:'AgentNetwork'):
         """This funcion runs the specified number of iterations of MCTS and
             picks an action to play
 
@@ -115,9 +115,6 @@ class MCTS:
         Returns:
             343 x 1: Policy vector
         """
-
-        if last_action_taken is not None:
-            self.root = self.root.children[last_action_taken]
 
         # iterate through simulations
         for _ in range(mcts_args['num_MCTS_simulations']):
@@ -151,14 +148,24 @@ class MCTS:
         sum_counts = sum(action_counts)
         improved_policy = [count/sum_counts for count in action_counts]
 
-        if self.self_play_mode is False:
-            self.root = self.root.children[chosen_action]
-            chosen_action = greedy_select_from_policy(improved_policy)
-        else:
+        if self.self_play_mode:
             chosen_action = sample_policy(improved_policy)
+        else:
+            chosen_action = greedy_select_from_policy(improved_policy)
 
+        self.root = self.root.children[chosen_action]
 
         return chosen_action
+    
+    def update_state(self, last_action_taken:'SpreadAction|SpawnAction|None'):
+        """Call this function when the opponent performs an action that you have
+        to update in your own representation of the board
+
+        Args:
+            last_action_taken (SpreadAction|SpawnAction|None, optional): Last Action Taken.
+        """
+        if last_action_taken is not None:
+            self.root = self.root.children[last_action_taken]
 
 self_play_args = {
     'num_iters': 80,
@@ -229,10 +236,9 @@ class SelfPlay:
         mcts = MCTS(self_play_mode=True)
         game_board = GameBoard()
         curr_player = PlayerColor.RED
-        next_action = None
 
         while True:
-            next_action = mcts.run(nnet, next_action)
+            next_action = mcts.run(nnet)
             examples.append([create_input(curr_player, game_board), next_action, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
             curr_player = curr_player.opponent
@@ -273,20 +279,22 @@ class SelfPlay:
 
             game_board = GameBoard()
             curr_player = PlayerColor.RED
-            next_action = None
             winner = None
 
             curr_bot = np.random.choice([(new_nnet, mcts_new), (old_nnet, mcts_old)])
+            curr_mcts, curr_nnet = curr_bot
+
             red_player = curr_bot
             blue_player = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
 
             while True:
-                curr_mcts, curr_nnet = curr_bot
-                next_action = curr_mcts.run(curr_nnet, next_action)
+                next_action = curr_mcts.run(curr_nnet)
                 game_board.handle_valid_action(curr_player, next_action)
                 curr_player = curr_player.opponent
 
                 curr_bot = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
+                curr_mcts, curr_nnet = curr_bot
+                curr_mcts.update_state(next_action)
                 
                 val = infexion.get_game_ended(game_board)
                 if val is not None:
