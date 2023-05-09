@@ -1,27 +1,27 @@
+import sys
+sys.path.append("game")
 import math
+import random
 import numpy as np
 from agent_network import AgentNetwork        # pylint: disable=import-error
 from alpha_zero_helper import\
-    policy_actions , get_symmetries, create_input, sample_policy, greedy_select_from_policy, get_policy_symmetries   # pylint: disable=import-error
-from infexion_logic import InfexionGame, GameBoard             # pylint: disable=import-error
-from referee.game import \
-    PlayerColor, SpawnAction, SpreadAction
+    policy_actions, valid_action_mask, get_symmetries, create_input, sample_policy, greedy_select_from_policy, get_policy_symmetries   # pylint: disable=import-error
+from infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
+from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 
 
 # hyperparameters
-mcts_args = {'num_MCTS_simulations': 50,
+mcts_args = {'num_MCTS_simulations': 5,
          'C': 1
         }
-
-infexion = InfexionGame()
 
 class Node:
     """
     This is the Node class (represents a node in the search tree)
     """
 
-    def __init__(self, player:'PlayerColor', game_board:'GameBoard', path, prior = 0):
-
+    def __init__(self, player:'PlayerColor', game_board:'GameBoard', path, prior = 0, is_valid=True):
+        self.is_valid = is_valid
         self.player = player
         self.game_board = game_board
 
@@ -44,13 +44,16 @@ class Node:
         # if there are no expandable moves - if node has no children
         return len(self.children) > 0
 
-    def select_child(self) -> tuple('SpawnAction|SpreadAction', 'GameBoard'):
+    def select_child(self):
         """
         Selects child with highest UCB score and returns the key, value pair
         """
         best_score = -np.inf
 
         for action, child in self.children.items():
+            if not child.is_valid:
+                continue
+
             score = self._ucb_score(child)
 
             if score > best_score:
@@ -81,18 +84,18 @@ class Node:
         """
 
         # zip policy and actions
-        action_probs = zip(policy_actions, infexion.valid_action_mask(self.game_board, self.player), policy)
+        action_probs = zip(policy_actions, valid_action_mask(self.game_board, self.player), policy)
         
-        for action, is_valid, prob in enumerate(action_probs):
+        for action, is_valid, prob in action_probs:
             if is_valid:
                 # Execute the action on a new game board
                 next_game_board = GameBoard(self.game_board)
                 next_game_board.handle_valid_action(self.player, action)
 
                 # Switch players and create a new node
-                self.children[action] = Node(self.player.opponent, next_game_board, self.path + [(action, self)], prob)
+                self.children[action] = Node(self.player.opponent, next_game_board, self.path + [(action, self)], prob, is_valid=True)
             else:
-                self.children[action] = Node(self.player.opponent, self.game_board, self.path + [(action, self)])
+                self.children[action] = Node(self.player.opponent, self.game_board, self.path + [(action, self)], is_valid=False)
 
 
 class MCTS:
@@ -116,15 +119,16 @@ class MCTS:
         """
 
         # iterate through simulations
-        for _ in range(mcts_args['num_MCTS_simulations']):
-            curr_node = self.root
+        for i in range(mcts_args['num_MCTS_simulations']):
 
             # keep selecting next child until we reach an unexpanded node
-            while curr_node.is_fully_expanded():
-                _, child_node = curr_node.select_child()
+            child_node = self.root
+            while child_node.is_fully_expanded():
+                _, child_node = child_node.select_child()
+                
 
            # once we reach a leaf node:
-            value = infexion.get_game_ended(child_node.game_board)
+            value = infexion_game.get_game_ended(child_node.game_board)
 
             if value is None:
                 # game is not over, get value from network and expand
@@ -132,20 +136,22 @@ class MCTS:
                 value, policy = network.get_value(inp), network.get_policy(inp)
                 child_node.expand(policy)
 
+            child_node.visit_count += 1
             # backup the value
             for _, back_node in reversed(child_node.path):
                 # update reward
                 if back_node.player == child_node.player:
-                    back_node.value += value
+                    back_node.value_sum += value
                 else:
-                    back_node.value += -value
+                    back_node.value_sum += -1 * value
 
-                back_node.visits += 1
+                back_node.visit_count += 1
 
         # Calculate the improved policy
         action_counts = [child.visit_count for child in self.root.children.values()]
+
         sum_counts = sum(action_counts)
-        improved_policy = [count/sum_counts for count in action_counts]
+        improved_policy = np.array([count/sum_counts for count in action_counts])
 
         return improved_policy
     
@@ -156,13 +162,13 @@ class MCTS:
         Args:
             last_action_taken (SpreadAction|SpawnAction|None, optional): Last Action Taken.
         """
-        if last_action_taken is not None:
-            self.root = self.root.children[last_action_taken]
+            
+        self.root = self.root.children[last_action_taken]
 
 self_play_args = {
-    'num_iters': 80,
-    'num_train_games': 100,
-    'pit_games': 40,
+    'num_iters': 3,
+    'num_train_games': 2,
+    'pit_games': 10,
     'threshold': 0.6
 }
 
@@ -170,16 +176,16 @@ class SelfPlay:
     """This class contains the functionality required for the Algorithm to play
     against itself and train itself
     """
-    def __init__(self, optimizer):
+    def __init__(self):
         
         self.hyper_params={
             "is_randomized": True,
             "load_network": None,
-            "input_depth": 16 
+            "input_depth": 14
         }
         
+        print("Created network!")
         self.network = AgentNetwork(self.hyper_params, "Network 0")
-        self.optimizer = optimizer # eg. ADAM
 
     def train_network(self, should_dump:bool):
         """This function trains the neural network using the AlphaGo Zero 
@@ -190,6 +196,7 @@ class SelfPlay:
             self.network.network_name = f"Network {i}"
             if should_dump:
                 self.network.save_network()
+            print(f"Starting Iteration {i}")
             new_nnet = self._execute_iteration(self.network)
             self.network = new_nnet
         
@@ -198,18 +205,29 @@ class SelfPlay:
                 self.network.save_network()
         return self.network
 
-    def _execute_iteration(self, nnet):
+    def _execute_iteration(self, nnet:'AgentNetwork'):
         examples = []
         frac_win = 0
 
         while frac_win < self_play_args['threshold']:
-            for _ in range(self_play_args['num_train_games']):
+            for i in range(self_play_args['num_train_games']):
+                print(f"Playing game {i}")
                 # collect examples from this game
                 examples += self._execute_game(nnet)
 
+            print("Starting training")
+            old_name = nnet.network_name
             new_nnet = nnet.train(examples)
 
-            frac_win = self._pit(new_nnet, nnet)
+            hyper_params={
+                "is_randomized": False,
+                "load_network": old_name,
+                "input_depth": 14
+            }
+            
+            print("Starting head to head")
+            frac_win = self._pit(new_nnet, AgentNetwork(hyper_params, "Old"))
+            print(f"Frac won {frac_win}")
 
         return new_nnet
         
@@ -236,9 +254,12 @@ class SelfPlay:
 
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
+            if game_board.moves_played % 10 == 0:
+                print(f"{game_board.moves_played} moves played")
+
             curr_player = curr_player.opponent
             
-            val = infexion.get_game_ended(game_board)
+            val = infexion_game.get_game_ended(game_board)
             if val is not None:
                 break
         
@@ -271,7 +292,8 @@ class SelfPlay:
         old_nnet_won = 0
         total_games = self_play_args['pit_games']
 
-        for _ in range(total_games):
+        for i in range(total_games):
+            print(f"Head to head, Game {i}")
             mcts_new = MCTS()
             mcts_old = MCTS()
 
@@ -279,14 +301,14 @@ class SelfPlay:
             curr_player = PlayerColor.RED
             winner = None
 
-            curr_bot = np.random.choice([(new_nnet, mcts_new), (old_nnet, mcts_old)])
+            curr_bot = random.choice([(new_nnet, mcts_new), (old_nnet, mcts_old)])
 
             red_player = curr_bot
             blue_player = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
 
             while True:
                 # Current player plays an action
-                curr_mcts, curr_nnet = curr_bot
+                curr_nnet, curr_mcts = curr_bot
                 next_policy = curr_mcts.run(curr_nnet)
                 next_action = greedy_select_from_policy(next_policy)
 
@@ -297,12 +319,8 @@ class SelfPlay:
                 # Player is switched
                 curr_player = curr_player.opponent
                 curr_bot = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
-
-                # New player updates their state
-                curr_mcts, curr_nnet = curr_bot
-                curr_mcts.update_state(next_action)
                 
-                val = infexion.get_game_ended(game_board)
+                val = infexion_game.get_game_ended(game_board)
                 if val is not None:
                     winner = val
                     break

@@ -1,4 +1,4 @@
-from nn import Layer  # pylint: disable=import-error
+from .nn import Layer  # pylint: disable=import-error
 import numpy as np
 import scipy.signal as sig
 
@@ -29,15 +29,18 @@ class Convolutional(Layer):
                 self.output[i] += sig.correlate2d(self.input[j], self.kernels[i,j], "valid")
         return self.output
 
-    def backward(self, d_outputs):
+    def backward(self, d_outputs, l2_term):
         self.d_kernels = np.zeros(self.kernel_shape)
         self.d_biases = d_outputs
+        self.d_biases += l2_term * self.d_biases
         d_inputs = np.zeros(self.input_shape)
 
         for i in range(self.kernel_num):
             for j in range(self.input_depth):
                 self.d_kernels[i, j] = sig.correlate2d(self.input[j], d_outputs[i], "valid")
-                self.d_inputs[j] = sig.convolve2d(d_outputs[i], self.kernels[i, j], "full")
+                d_inputs[j] = sig.convolve2d(d_outputs[i], self.kernels[i, j], "full")
+
+        self.d_kernels += l2_term * self.d_kernels
 
         return d_inputs
     
@@ -67,14 +70,17 @@ class Flatten(Layer):
     def forward(self, layer_input):
         return np.reshape(layer_input, self.output_shape)
 
-    def backward(self, d_output):
+    def backward(self, d_output, l2_term):
         return np.reshape(d_output, self.input_shape)
-    
+
     def get_params(self):
         return None
     
     def set_params(self, weights, biases):
         pass
+
+    def get_grads(self):
+        return None
 
     def zero_grad(self):
         pass

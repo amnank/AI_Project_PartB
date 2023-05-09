@@ -1,24 +1,20 @@
 import numpy as np
-from agent_network import AgentNetwork # pylint: disable=import-error
 
 
 class StochasticGradientDescent:
 
-    def __init__(self, learning_rate=0.01, momentum=0.9):
+    def __init__(self, l2_lambda=0.001, learning_rate=0.01):
         self.learning_rate = learning_rate
-        self.momentum = momentum
-        self.velocities = None
+        self.l2_lambda = l2_lambda
+        self.c=1e-4
+        self.reg_term = 0
     
     def update_params(self, params, grads):
-        if self.velocities is None:
-            self.velocities = [np.zeros_like(p) for p in params]
-        
-        for i,_ in enumerate(params):
-            self.velocities[i] = self.momentum * self.velocities[i] + (1 - self.momentum) * grads[i]
-            params[i] -= self.learning_rate * self.velocities[i]
+        params += self.learning_rate * grads
+        return params
 
 
-    def loss_function(self, pred_value, true_value, pred_policy, true_search_policy, c=1e-4):
+    def loss_function(self, pred_value, true_value, pred_policy, true_search_policy, params):
         """
         Computes the loss function for AlphaZero self-play reinforcement learning algorithm.
 
@@ -33,9 +29,13 @@ class StochasticGradientDescent:
         loss: total loss
         """
 
-        value_loss = (true_value - pred_value) ** 2
-        policy_loss = -(true_search_policy * np.log(pred_policy))
-        # reg_term = c * np.sum([np.sum(param**2) for param in parameters])
-        loss = value_loss + policy_loss #+ reg_term
+        true_search_policy = np.array(true_search_policy)
+        true_search_policy = true_search_policy.reshape((343, 1))
+
+        value_loss = 0.5 * ((true_value - pred_value) ** 2)
+        policy_loss = -np.matmul(true_search_policy.T, np.log(pred_policy)).item()
+
+        self.reg_term = self.c * np.sum([np.sum(param**2) for param in params])
+        loss = value_loss + policy_loss + self.reg_term
 
         return loss

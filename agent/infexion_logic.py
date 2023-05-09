@@ -1,6 +1,6 @@
-from alpha_zero_helper import policy_actions # pylint: disable=import-error
-from referee.game import \
-    PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants
+import sys
+sys.path.append("game")
+from game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
 
 class InfexionGame:
     """The class encapsulates the logic of the Infexion game
@@ -33,25 +33,6 @@ class InfexionGame:
         
         return actions
     
-    def valid_action_mask(self, game_board:'GameBoard', player:'PlayerColor'):
-        """This function creates a 343 x 1 vector corresponding to
-        alpha_zero_helper.policy_actions with all the valid moves
-
-        Args:
-            player (PlayerColor): The phasing player
-
-        Returns:
-            343 x 1 list: One hot encoded valid moves
-        """
-        mask = []
-        for action in policy_actions:
-            if self.is_valid_move(game_board, player, action):
-                mask.append(1)
-            else:
-                mask.append(0)
-
-        return mask
-    
     def is_valid_move(self, game_board:'GameBoard', player, action) -> bool:
         """Returns whether an action made by a player is valid or not
 
@@ -67,7 +48,7 @@ class InfexionGame:
         
         match action:
             case SpawnAction():
-                if cell.player is None and (total_power < constants.MAX_TOTAL_POWER):
+                if (cell.player is None) and (total_power < constants.MAX_TOTAL_POWER):
                     return True
                 else:
                     return False
@@ -87,7 +68,7 @@ class InfexionGame:
         if game_board.moves_played == constants.MAX_TURNS:
             return 0
         
-        if game_board.moves_played == 0:
+        if game_board.moves_played < 2:
             return None
 
         red = False
@@ -114,6 +95,7 @@ class InfexionGame:
             # Game in progress
             return None
 
+infexion_game = InfexionGame()
 
 class GameBoard:
     """This class encapsulates the logic of an Infexion game state
@@ -152,20 +134,20 @@ class GameBoard:
 
 
     def _handle_spawn(self, player, spawn_action:'SpawnAction'):
-        self.total_board[spawn_action.cell.q][spawn_action.cell.r] = Cell(player, 1)
+        self.total_board[spawn_action.cell.r][spawn_action.cell.q] = Cell(player, 1)
 
     def _handle_spread(self, player, spread_action:'SpreadAction'):
-        spread_cell_power = self.total_board[spread_action.cell.q][spread_action.cell.r].power
+        spread_cell_power = self.total_board[spread_action.cell.r][spread_action.cell.q].power
         spread_direction = spread_action.direction
         cell = spread_action.cell
 
         for _ in range(spread_cell_power):
             cell += spread_direction
-            self.total_board[cell.q][cell.r].perform_spread(player)
+            self.total_board[cell.r][cell.q]._perform_spread(player)
         
-        spread_action.cell = Cell(None, 0)
+        self.total_board[spread_action.cell.r][spread_action.cell.q] = Cell(None, 0)
         
-    def get_canonical_board(self, player:PlayerColor) -> list(int):
+    def get_canonical_board(self, player:PlayerColor):
         """Returns the board with player cells having +ve power,
         and opponent cells having -ve power
 
@@ -190,7 +172,7 @@ class GameBoard:
 
         return board
     
-    def get_player_board(self, player:PlayerColor) -> list(int):
+    def get_player_board(self, player:PlayerColor):
         """Returns the board with only the phasing player's cells, all other
         cells are 0
 
@@ -213,7 +195,7 @@ class GameBoard:
 
         return board
     
-    def get_empty_spaces(self) -> list(int):
+    def get_empty_spaces(self):
         """Returns the board with empty cells having a value of 1, else 0
 
         Returns:
@@ -232,7 +214,7 @@ class GameBoard:
 
         return board
     
-    def get_player_power_board(self, power, player:'PlayerColor') -> list(int):
+    def get_player_power_board(self, power, player:'PlayerColor'):
         """Returns the board where only cells having a particular power of the
         phasing player are included, else 0
 

@@ -16,9 +16,11 @@ class Layer:
         self.input = layer_input
         return np.dot(self.weights, self.input) + self.biases
 
-    def backward(self, d_output):
+    def backward(self, d_output, l2_term):
         self.d_weights = np.dot(d_output, self.input.T)
+        self.d_weights += l2_term * self.d_weights
         self.d_biases = d_output
+        self.d_biases += l2_term * self.d_biases
         
         return np.dot(self.weights.T, d_output)
     
@@ -47,7 +49,7 @@ class Activation(Layer):
         self.input = layer_input
         return self.activation(self.input)
 
-    def backward(self, d_output, learning_rate):
+    def backward(self, d_output, l2_term):
         return np.multiply(d_output, self.activation_prime(self.input))
     
     def randomize_params(self):
@@ -58,6 +60,9 @@ class Activation(Layer):
     
     def set_params(self, weights, biases):
         pass
+    
+    def get_grads(self):
+        None
 
     def zero_grad(self):
         pass
@@ -76,7 +81,7 @@ class tanH(Activation):
     def __init__(self):
         self.name = "tanH"
         tanH_function = lambda x : np.tanh(x)
-        tanH_prime = lambda x : np.cosh(x) ** 2
+        tanH_prime = lambda x : (1 / np.cosh(x)) ** 2
         super().__init__(tanH_function, tanH_prime)
 
 class Sigmoid(Activation):

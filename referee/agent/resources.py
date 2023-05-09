@@ -99,7 +99,7 @@ class MemoryWatcher:
             if self._limit is not None and self._limit > 0:
                 if self._peak_usage > self._limit:
                     raise ResourceLimitException(
-                        "exceeded space limit"
+                        f"exceeded space limit (peak={self._peak_usage:.1f}MB)"
                     )
 
 

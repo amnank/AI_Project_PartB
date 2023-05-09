@@ -1,7 +1,8 @@
+import sys
+sys.path.append("game")
 import numpy as np
-from infexion_logic import GameBoard # pylint: disable=import-error
-from referee.game import \
-    PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants
+from infexion_logic import infexion_game, GameBoard # pylint: disable=import-error
+from game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
 
 policy_actions = []
 for q in range(constants.BOARD_N):
@@ -17,6 +18,25 @@ for q in range(constants.BOARD_N):
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpLeft))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
 
+
+def valid_action_mask(game_board:'GameBoard', player:'PlayerColor'):
+        """This function creates a 343 x 1 vector corresponding to
+        alpha_zero_helper.policy_actions with all the valid moves
+
+        Args:
+            player (PlayerColor): The phasing player
+
+        Returns:
+            343 x 1 list: One hot encoded valid moves
+        """
+        mask = []
+        for action in policy_actions:
+            if infexion_game.is_valid_move(game_board, player, action):
+                mask.append(1)
+            else:
+                mask.append(0)
+
+        return mask
 
 def get_policy_symmetries(policy):
     """This function returns the list of symmetries of a policy vector,
@@ -42,8 +62,8 @@ def get_policy_symmetries(policy):
 
     output = []
     for spawn_sym, spread_sym in zip(spawn_symmetries, spread_symmetries):
-        spa = spawn_sym.flatten()
-        spr = spread_sym.flatten()
+        spa = np.array(spawn_sym).flatten().tolist()
+        spr = np.array(spread_sym).flatten().tolist()
         output.append(spa + spr)
 
     return output
@@ -65,16 +85,16 @@ def create_input(player:PlayerColor, board:'GameBoard'):
     """
     inp = []
 
-    inp.append(board.get_canonical_board)
-    inp.append(board.get_empty_spaces)
+    inp.append(board.get_canonical_board(player))
+    inp.append(board.get_empty_spaces())
     inp.append(board.get_player_board(player))
-    inp.append(board.get_player_board(player.oppponent))
+    inp.append(board.get_player_board(player.opponent))
 
     for power in range(1, constants.MAX_CELL_POWER):
         inp.append(board.get_player_power_board(power, player))
         inp.append(_reverse_board_sign(board.get_player_power_board(power, player.opponent)))
 
-    return inp
+    return np.array(inp)
 
 def sample_policy(policy) -> 'SpawnAction|SpreadAction':
     """This function samples an action from the policy
@@ -85,6 +105,7 @@ def sample_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction | Spread Action: The sampled action
     """
+    policy = np.array(policy)
     policy = (policy / policy.sum()).flatten()
     action = np.random.choice(np.array(policy_actions), p=policy)
     return action
@@ -98,6 +119,7 @@ def greedy_select_from_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction|SpreadAction: The selected action
     """
+    policy = np.array(policy)
     policy = (policy / policy.sum()).flatten()
     action = policy_actions[int(np.array(policy).argmax())]
     return action
