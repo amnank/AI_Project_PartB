@@ -101,11 +101,10 @@ class AgentNetwork:
                 
             # Compute the gradient of the output w.r.t total loss
             d_out_policy = -np.divide(improved_policy, predicted_policy)
-            d_out_value = -2(value - predicted_value)
+            d_out_value = -2 * (value - predicted_value)
 
             # Backpropagate the output gradient through the network
-            self.backward(d_out_policy)
-            self.backward(d_out_value)
+            self.backward(d_out_policy + d_out_value)
 
             # Update the network parameters using the SGD optimizer
             for layer in self.network:
