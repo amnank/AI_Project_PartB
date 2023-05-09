@@ -136,7 +136,8 @@ class AgentNetwork:
         i = 0
         num = len(training_examples)
         for state, improved_policy, value in training_examples:
-            print(f"Training example {i}/{num}")
+            if i % 50 == 0:
+                print(f"Training example {i}/{num}")
             improved_policy = np.array(improved_policy)
             improved_policy = improved_policy.reshape((343, 1))
             

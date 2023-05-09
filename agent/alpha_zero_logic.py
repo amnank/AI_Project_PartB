@@ -101,9 +101,15 @@ class Node:
 class MCTS:
     """This class encapsulates the functionality of the Monte Carlo Tree Search
     """
-    def __init__(self):
+    def __init__(self, game_board:'GameBoard|None'=None, player:'PlayerColor|None'=None):
         # Initialize the root node with the player as RED, starting board and prior of 0
-        self.root = Node(PlayerColor.RED, GameBoard(), [], 0)
+        if game_board is None and player is None:
+            self.root = Node(PlayerColor.RED, GameBoard(), [], 0)
+        elif game_board is not None and player is not None:
+            self.root = Node(player, game_board, [], 0)
+        else:
+            raise ValueError("Bad initialization of MCTS")
+
 
 
     def run(self, network:'AgentNetwork'):
@@ -166,7 +172,7 @@ class MCTS:
         self.root = self.root.children[last_action_taken]
 
 self_play_args = {
-    'num_iters': 1,
+    'num_iters': 5,
     'num_train_games': 10,
     'pit_games': 5,
     'threshold': 0.6
@@ -254,7 +260,7 @@ class SelfPlay:
 
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
-            if game_board.moves_played % 10 == 0:
+            if game_board.moves_played % 50 == 0:
                 print(f"{game_board.moves_played} moves played")
 
             curr_player = curr_player.opponent
@@ -303,33 +309,33 @@ class SelfPlay:
             curr_player = PlayerColor.RED
             winner = None
 
-            curr_bot = random.choice([(new_nnet, mcts_new), (old_nnet, mcts_old)])
+            curr_nnet = random.choice([new_nnet, old_nnet])
 
-            red_player = curr_bot
-            blue_player = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
+            red_player = curr_nnet
+            blue_player = new_nnet if curr_nnet == old_nnet else old_nnet
 
             while True:
                 # Current player plays an action
-                curr_nnet, curr_mcts = curr_bot
+                curr_mcts = MCTS(game_board, curr_player)
                 next_policy = curr_mcts.run(curr_nnet)
                 next_action = greedy_select_from_policy(next_policy)
 
                 # Board and current player's MCTS is updated
-                curr_mcts.update_state(next_action)
+                # curr_mcts.update_state(next_action)
                 game_board.handle_valid_action(curr_player, next_action)
 
-                if game_board.moves_played == 1:
-                    blue_nnet, blue_mcts = blue_player
-                    _ = blue_mcts.run(blue_nnet)
+                # if game_board.moves_played == 1:
+                #     blue_nnet, blue_mcts = blue_player
+                #     _ = blue_mcts.run(blue_nnet)
 
-                if game_board.moves_played % 10 == 0:
+                if game_board.moves_played % 50 == 0:
                     print(f"{game_board.moves_played} moves played")
 
                 # Player is switched
                 curr_player = curr_player.opponent
-                curr_bot = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
-                curr_nnet, curr_mcts = curr_bot
-                curr_mcts.update_state(next_action)
+                curr_nnet = new_nnet if curr_nnet == old_nnet else old_nnet
+                # curr_nnet, curr_mcts = curr_nnet
+                # curr_mcts.update_state(next_action)
                 
                 val = infexion_game.get_game_ended(game_board)
                 if val is not None:

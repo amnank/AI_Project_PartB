@@ -40,6 +40,7 @@ class Agent:
         Return the next action to take.
         """
 
+        self.mcts = MCTS(self.board, self._color)
         next_policy = self.mcts.run(self.network)
         action = greedy_select_from_policy(next_policy)
         return action
@@ -48,10 +49,10 @@ class Agent:
         """
         Update the agent with the last player's action.
         """
-        if self._color == PlayerColor.BLUE and self.board.moves_played == 0:
-            _ = self.mcts.run(self.network)
+        # if self._color == PlayerColor.BLUE and self.board.moves_played == 0:
+        #     _ = self.mcts.run(self.network)
         
-        self.mcts.update_state(action)
+        # self.mcts.update_state(action)
 
         self.board.handle_valid_action(color, action)
         
