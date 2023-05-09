@@ -10,23 +10,34 @@ for q in range(constants.BOARD_N):
 
 for q in range(constants.BOARD_N):
     for r in range(constants.BOARD_N):
-        policy_actions.append(SpreadAction(HexPos(r,q), HexDir.Down))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.DownLeft))
+        policy_actions.append(SpreadAction(HexPos(r,q), HexDir.Down))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.DownRight))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.Up))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpLeft))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
 
-# Add policy symmetries
 
 def get_policy_symmetries(policy):
-    new_policy = []
-    for i, p in enumerate(policy):
-        if i < (constants.BOARD_N * constants.BOARD_N):
-            r = i // constants.BOARD_N
-            q = i % constants.BOARD_N
-            new_policy.append()
+    spawn_policy = policy[:49]
+    spread_policy = policy[49:]
 
+    spawn_array = np.array(spawn_policy)
+    spread_array = np.array(spread_policy)
+
+    spawn_array = np.reshape(spawn_array, (7, 7))
+    spread_array = np.reshape(spread_array, (7, 7, 6))
+
+    spawn_symmetries = get_symmetries(spawn_array.tolist())
+    spread_symmetries = get_symmetries(spread_array.tolist())
+
+    output = []
+    for spawn_sym, spread_sym in zip(spawn_symmetries, spread_symmetries):
+        spa = spawn_sym.flatten()
+        spr = spread_sym.flatten()
+        output.append(spa + spr)
+
+    return output
 
 def create_input(player:PlayerColor, board:'GameBoard'):
     """This function creates input for the neural network
