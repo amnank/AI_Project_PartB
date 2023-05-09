@@ -56,6 +56,7 @@ def sample_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction | Spread Action: The sampled action
     """
+    policy = (policy / policy.sum()).flatten()
     action = np.random.choice(np.array(policy_actions), p=policy)
     return action
 
@@ -68,6 +69,7 @@ def greedy_select_from_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction|SpreadAction: The selected action
     """
+    policy = (policy / policy.sum()).flatten()
     action = policy_actions[int(np.array(policy).argmax())]
     return action
 
