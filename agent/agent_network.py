@@ -1,8 +1,8 @@
 import sys
 sys.path.append("neuralnet")
-from cnn import Convolutional, Flatten # pylint: disable=import-error
-from nn import Layer, tanH, Sigmoid # pylint: disable=import-error
-from model_IO import save_model, load_model # pylint: disable=import-error
+from neuralnet.cnn import Convolutional, Flatten # pylint: disable=import-error
+from neuralnet.nn import Layer, tanH, Sigmoid # pylint: disable=import-error
+from neuralnet.model_IO import save_model, load_model # pylint: disable=import-error
 
 
 
@@ -73,6 +73,41 @@ class AgentNetwork:
             output = layer.forward(output)
 
         return output
+    
+    def get_params(self):
+        params = []
+        for layer in self.network:
+            params.append(layer.get_params())
+        return params
+    
+    def train(self, examples, policy_targets, value_targets, learning_rate):
+        """
+        Trains the network using batch gradient descent.
+        `examples`: List of examples (numpy arrays) used for training
+        `policy_targets`: List of policy targets (numpy arrays) for each state
+        `value_targets`: List of value targets (numpy arrays) for each state
+        `learning_rate`: Learning rate for gradient descent
+        """
+        batch_size = len(examples)
+        policy_grads = []
+        value_grads = []
+        
+        # Compute gradients for each sample in the batch
+        for i in range(batch_size):
+            state = examples[i][0]
+            policy_target = policy_targets[i]
+            value_target = examples[i][2]
+            
+            shared_output = self.process_shared(state)
+            policy_output = self.get_policy(state)
+            value_output = self.get_value(state)
+            
+            # Compute gradients for policy and value outputs
+            policy_loss_grad = (policy_output - policy_target) / batch_size
+            value_loss_grad = (value_output - value_target) / batch_size
+            
+            # Backpropagate through value layers
+            d_output = value_loss_grad * self.value
     
     def save_network(self):
         save_model(self)

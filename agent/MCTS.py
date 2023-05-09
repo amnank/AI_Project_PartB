@@ -166,7 +166,7 @@ self_play_args = {
 class SelfPlay:
     def __init__(self, network:'AgentNetwork', optimizer):
         self.network = network
-        self.optimizer = optimizer # eg. ADAM
+        self.optimizer = optimizer # SGD
 
     def train_network(self, should_dump:bool):
         """This function trains the neural network using the AlphaGo Zero 
