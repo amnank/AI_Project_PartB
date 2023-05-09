@@ -46,7 +46,7 @@ class AgentNetwork:
             #Load from files
             load_model(self, hyper_params["load_network"])
 
-    def process_shared(self, input_state):
+    def _process_shared(self, input_state):
         if input_state.shape != (self.input_depth, 7, 7):
             raise ValueError("Input shape is not what is defined in hyper_param")
 
@@ -56,7 +56,7 @@ class AgentNetwork:
         return output
 
     def get_policy(self, input_state):
-        shared_output = self.process_shared(input_state)
+        shared_output = self._process_shared(input_state)
         
         output = shared_output
         for layer in self.policy_layers:
@@ -66,7 +66,7 @@ class AgentNetwork:
         
     
     def get_value(self, input_state):
-        shared_output = self.process_shared(input_state)
+        shared_output = self._process_shared(input_state)
         
         output = shared_output
         for layer in self.value_layers:
