@@ -132,7 +132,8 @@ class GameBoard:
             for r in range(constants.BOARD_N):
                 col = []
                 for q in range(constants.BOARD_N):
-                    col.append(other_game_board.total_board[r][q])
+                    cell = other_game_board.total_board[r][q]
+                    col.append(Cell(cell.player, cell.power))
                 self.total_board.append(col)
 
     def handle_valid_action(self, player, action):
