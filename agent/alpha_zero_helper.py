@@ -32,7 +32,7 @@ def create_input(player:PlayerColor, board:'GameBoard'):
         player (PlayerColor): The phasing player
 
     Returns:
-        list(list(int)): List of boards
+        np.array(): List of boards
     """
     inp = []
 

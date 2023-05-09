@@ -35,7 +35,7 @@ class Node:
         # All legal children that can be reached
         self.children = {}
 
-        # Path to root
+        # Path to root (action, start_state)
         self.path = path
 
     def is_fully_expanded(self) -> bool:
@@ -92,7 +92,7 @@ class Node:
                 # Switch players and create a new node
                 self.children[action] = Node(self.player.opponent, next_game_board, self.path + [(action, self)], prob)
             else:
-                self.children[action] = Node(self.player.opponent, self.game_board, self.path + [(action, self)], 0)
+                self.children[action] = Node(self.player.opponent, self.game_board, self.path + [(action, self)])
 
 
 class MCTS:
@@ -252,18 +252,20 @@ class SelfPlay:
                 example[2] = 0
             else:
                 example[2] = 1 if int(example[2]) == val else -1
-
-        for example in examples:
-            if val == 0:
-                example[1] = 0
-            elif val == 1:
-                example[1] = 1 if example[1] == 'red' else -1
-            else:
-                example[1] = 1 if example[1] == 'blue' else -1
         
+
+        sym_examples = []
+        # Implement symmetries
+        for example in examples:
+            sym_list = [get_symmetries(inp) for inp in example[0]]
+            sym_list = np.transpose(sym_list, (1, 0 , 2, 3))
+            for variation in sym_list:
+                sym_examples.append([variation, example[1], example[2]])
+
+
+
         examples_tuples = [tuple(example) for example in examples]
 
-        # Implement symmetries
 
         return examples_tuples
     
