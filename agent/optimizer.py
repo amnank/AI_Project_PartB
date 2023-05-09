@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class AdamOptim():
+class Optimizer():
 
     def __init__(self, eta=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8):
         self.m_dw, self.v_dw = 0, 0
@@ -10,7 +10,6 @@ class AdamOptim():
         self.beta2 = beta2
         self.epsilon = epsilon
         self.eta = eta
-
 
     def update(self, t, w, b, dw, db):
         ## dw, db are from current minibatch
@@ -37,6 +36,3 @@ class AdamOptim():
         w = w - self.eta*(m_dw_corr/(np.sqrt(v_dw_corr)+self.epsilon))
         b = b - self.eta*(m_db_corr/(np.sqrt(v_db_corr)+self.epsilon))
         return w, b
-
-
-        
