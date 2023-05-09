@@ -1,7 +1,8 @@
 import math
 import numpy as np
 from agent_network import AgentNetwork        # pylint: disable=import-error
-from alpha_zero_helper import policy_actions , get_symmetries, create_input, sample_policy   # pylint: disable=import-error
+from alpha_zero_helper import\
+    policy_actions , get_symmetries, create_input, sample_policy, greedy_select_from_policy   # pylint: disable=import-error
 from infexion_logic import InfexionGame, GameBoard             # pylint: disable=import-error
 from referee.game import \
     PlayerColor, SpawnAction, SpreadAction
@@ -150,9 +151,12 @@ class MCTS:
         sum_counts = sum(action_counts)
         improved_policy = [count/sum_counts for count in action_counts]
 
-        chosen_action = sample_policy(improved_policy)
         if self.self_play_mode is False:
             self.root = self.root.children[chosen_action]
+            chosen_action = greedy_select_from_policy(improved_policy)
+        else:
+            chosen_action = sample_policy(improved_policy)
+
 
         return chosen_action
 
@@ -164,8 +168,18 @@ self_play_args = {
 }
 
 class SelfPlay:
-    def __init__(self, network:'AgentNetwork', optimizer):
-        self.network = network
+    """This class contains the functionality required for the Algorithm to play
+    against itself and train itself
+    """
+    def __init__(self, optimizer):
+        
+        self.hyper_params={
+            "is_randomized": True,
+            "load_network": None,
+            "input_depth": 16 
+        }
+        
+        self.network = AgentNetwork(self.hyper_params, "Network 0")
         self.optimizer = optimizer # eg. ADAM
 
     def train_network(self, should_dump:bool):
@@ -174,12 +188,15 @@ class SelfPlay:
         previous ones
         """
         for i in range(self_play_args['num_iters']):
-            new_nnet = self._execute_iteration(self.network)
-            self.network.network_name = f"Network{i}"
+            self.network.network_name = f"Network {i}"
             if should_dump:
                 self.network.save_network()
+            new_nnet = self._execute_iteration(self.network)
             self.network = new_nnet
         
+        self.network.network_name = f"Network {i}"
+        if should_dump:
+                self.network.save_network()
         return self.network
 
     def _execute_iteration(self, nnet):

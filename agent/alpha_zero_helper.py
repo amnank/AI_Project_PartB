@@ -48,7 +48,7 @@ def create_input(player:PlayerColor, board:'GameBoard'):
     return inp
 
 def sample_policy(policy) -> 'SpawnAction|SpreadAction':
-    """This function returns an action from the policy
+    """This function samples an action from the policy
 
     Args:
         policy (343 x 1 List): probabilities
@@ -56,7 +56,19 @@ def sample_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction | Spread Action: The sampled action
     """
-    action = np.random.choice(policy_actions, p=policy)
+    action = np.random.choice(np.array(policy_actions), p=policy)
+    return action
+
+def greedy_select_from_policy(policy) -> 'SpawnAction|SpreadAction':
+    """This function greedy selects an action from the policy
+
+    Args:
+        policy (343 x 1 list): probabilities
+
+    Returns:
+        SpawnAction|SpreadAction: The selected action
+    """
+    action = policy_actions[int(np.array(policy).argmax())]
     return action
 
 def _reverse_board_sign(board):
