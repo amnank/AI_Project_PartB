@@ -2,10 +2,8 @@
 # Project Part B: Game Playing Agent
 
 from referee.game import \
-    PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir, constants
-from .infexion_logic import InfexionGame, GameBoard
+    PlayerColor, Action
 from .agent_network import AgentNetwork
-from .alpha_zero_helper import create_input, sample_policy
 from .alpha_zero_logic import MCTS
 
 # This is the entry point for your game playing agent. Currently the agent
