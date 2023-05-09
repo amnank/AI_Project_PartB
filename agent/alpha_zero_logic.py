@@ -260,7 +260,7 @@ class SelfPlay:
 
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
-            if game_board.moves_played % 50 == 0:
+            if game_board.moves_played % 15 == 0:
                 print(f"{game_board.moves_played} moves played")
 
             curr_player = curr_player.opponent
@@ -302,8 +302,6 @@ class SelfPlay:
 
         for i in range(total_games):
             print(f"Head to head, Game {i}")
-            mcts_new = MCTS()
-            mcts_old = MCTS()
 
             game_board = GameBoard()
             curr_player = PlayerColor.RED
@@ -344,10 +342,10 @@ class SelfPlay:
             
             if winner != 0:
                 if winner == int(PlayerColor.RED):
-                    new_nnet_won += 1 if red_player[0] == new_nnet else 0
-                    old_nnet_won += 1 if red_player[0] == old_nnet else 0
+                    new_nnet_won += 1 if red_player == new_nnet else 0
+                    old_nnet_won += 1 if red_player == old_nnet else 0
                 else:
-                    new_nnet_won += 1 if blue_player[0] == new_nnet else 0
-                    old_nnet_won += 1 if blue_player[0] == old_nnet else 0
+                    new_nnet_won += 1 if blue_player == new_nnet else 0
+                    old_nnet_won += 1 if blue_player == old_nnet else 0
 
         return new_nnet_won / total_games
