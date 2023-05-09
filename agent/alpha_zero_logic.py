@@ -77,7 +77,7 @@ class Node:
 
     def expand(self, policy):
         """
-        Generates the valid successor states of this Node and adds them as its children
+        Generates all successor states of this Node and adds them as its children
         """
 
         # zip policy and actions
@@ -241,9 +241,19 @@ class SelfPlay:
             if val is not None:
                 break
         
+        for example in examples:
+            if val == 0:
+                example[2] = 0
+            else:
+                example[2] = 1 if int(example[2]) == val else -1
 
         for example in examples:
-            example[2] = 1 if (int(example[2]) == val) else (0 if val == 0 else -1)
+            if val == 0:
+                example[1] = 0
+            elif val == 1:
+                example[1] = 1 if example[1] == 'red' else -1
+            else:
+                example[1] = 1 if example[1] == 'blue' else -1
         
         examples_tuples = [tuple(example) for example in examples]
 
