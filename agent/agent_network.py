@@ -101,7 +101,7 @@ class AgentNetwork:
         for state, action_played, improved_policy, value in training_examples:
 
             # Compute the predicted policy and value
-            predicted_policy, predicted_value = self.get_policy, self.get_value
+            predicted_policy, predicted_value = self.get_policy(state), self.get_value(state)
                 
             # Compute the policy loss and value loss
             policy_loss = -improved_policy * np.log(predicted_policy)
