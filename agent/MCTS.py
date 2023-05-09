@@ -5,6 +5,7 @@ from alpha_zero_helper import policy_actions , create_input, sample_policy   # p
 from infexion_logic import InfexionGame, GameBoard             # pylint: disable=import-error
 from referee.game import \
     PlayerColor, SpawnAction, SpreadAction
+import torch.optim as optim
 
 
 # hyperparameters
@@ -154,7 +155,7 @@ class MCTS:
         if self.self_play_mode is False:
             self.root = self.root.children[chosen_action]
 
-        return chosen_action
+        return chosen_action, improved_policy
 
 self_play_args = {
     'num_iters': 80,
@@ -164,9 +165,9 @@ self_play_args = {
 }
 
 class SelfPlay:
-    def __init__(self, network:'AgentNetwork', optimizer):
+    def __init__(self, network:'AgentNetwork'):
         self.network = network
-        self.optimizer = optimizer # SGD
+        self.optimizer = optim.Adam(network.get_params(), lr=0.001) # Adam
 
     def train_network(self, should_dump:bool):
         """This function trains the neural network using the AlphaGo Zero 
@@ -205,7 +206,7 @@ class SelfPlay:
             nnet (AgentNetwork): The neural net playing against itself
 
         Returns:
-            list(tuple): (state, action_played, resultant value)
+            list(tuple): (state, action_played, improved_policy, resultant value)
         """
         examples = []
         # starts a new game
@@ -215,8 +216,8 @@ class SelfPlay:
         next_action = None
 
         while True:
-            next_action = mcts.run(nnet, next_action)
-            examples.append([create_input(curr_player, game_board), next_action, curr_player])
+            next_action, improved_policy = mcts.run(nnet, next_action)
+            examples.append([create_input(curr_player, game_board), next_action, improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
             curr_player = curr_player.opponent
             
@@ -226,7 +227,7 @@ class SelfPlay:
         
 
         for example in examples:
-            example[2] = 1 if (int(example[2]) == val) else (0 if val == 0 else -1)
+            example[3] = 1 if (int(example[3]) == val) else (0 if val == 0 else -1)
         
         examples_tuples = [tuple(example) for example in examples]
 
