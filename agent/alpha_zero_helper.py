@@ -17,6 +17,15 @@ for q in range(constants.BOARD_N):
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpLeft))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
 
+# Add policy symmetries
+
+def get_policy_symmetries(policy):
+    new_policy = []
+    for i, p in enumerate(policy):
+        if i < (constants.BOARD_N * constants.BOARD_N):
+            r = i // constants.BOARD_N
+            q = i % constants.BOARD_N
+            new_policy.append()
 
 
 def create_input(player:PlayerColor, board:'GameBoard'):

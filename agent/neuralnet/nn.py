@@ -16,12 +16,10 @@ class Layer:
         self.input = layer_input
         return np.dot(self.weights, self.input) + self.biases
 
-    def backward(self, d_output, learning_rate):
-        d_weights = np.dot(d_output, self.input.T)
-        d_bias = d_output
-
-        self.weights -= learning_rate * d_weights
-        self.biases -= learning_rate * d_bias
+    def backward(self, d_output):
+        self.d_weights = np.dot(d_output, self.input.T)
+        self.d_biases = d_output
+        
         return np.dot(self.weights.T, d_output)
     
     def get_params(self):
@@ -30,7 +28,13 @@ class Layer:
     def set_params(self, weights, biases):
         self.weights = weights
         self.biases = biases
+    
+    def get_grads(self):
+        return (self.d_weights, self.d_biases)
 
+    def zero_grad(self):
+        self.d_weights = np.zeros(self.weights_shape)
+        self.d_biases = np.zeros(self.biases_shape)
 
 class Activation(Layer):
     """This class encapsulates the logic of an activation layer that applies an activation function
@@ -53,6 +57,9 @@ class Activation(Layer):
         return None
     
     def set_params(self, weights, biases):
+        pass
+
+    def zero_grad(self):
         pass
 
 class ReLU(Activation):

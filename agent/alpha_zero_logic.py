@@ -98,15 +98,14 @@ class Node:
 class MCTS:
     """This class encapsulates the functionality of the Monte Carlo Tree Search
     """
-    def __init__(self, self_play_mode:bool):
+    def __init__(self):
         # Initialize the root node with the player as RED, starting board and prior of 0
         self.root = Node(PlayerColor.RED, GameBoard(), [], 0)
-        self.self_play_mode = self_play_mode
 
 
     def run(self, network:'AgentNetwork'):
         """This funcion runs the specified number of iterations of MCTS and
-            picks an action to play
+            returns the improved policy
 
         Args:
             current_player (PlayerColor): The phasing player
@@ -148,14 +147,7 @@ class MCTS:
         sum_counts = sum(action_counts)
         improved_policy = [count/sum_counts for count in action_counts]
 
-        if self.self_play_mode:
-            chosen_action = sample_policy(improved_policy)
-        else:
-            chosen_action = greedy_select_from_policy(improved_policy)
-
-        self.root = self.root.children[chosen_action]
-
-        return chosen_action
+        return improved_policy
     
     def update_state(self, last_action_taken:'SpreadAction|SpawnAction|None'):
         """Call this function when the opponent performs an action that you have
@@ -215,7 +207,7 @@ class SelfPlay:
                 # collect examples from this game
                 examples += self._execute_game(nnet)
 
-            new_nnet = nnet.train_nnet(examples)
+            new_nnet = nnet.train(examples)
 
             frac_win = self._pit(new_nnet, nnet)
 
@@ -233,13 +225,16 @@ class SelfPlay:
         """
         examples = []
         # starts a new game
-        mcts = MCTS(self_play_mode=True)
+        mcts = MCTS()
         game_board = GameBoard()
         curr_player = PlayerColor.RED
 
         while True:
-            next_action = mcts.run(nnet)
-            examples.append([create_input(curr_player, game_board), next_action, curr_player])
+            improved_policy = mcts.run(nnet)
+            next_action = sample_policy(improved_policy)
+            mcts.update_state(next_action)
+
+            examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
             curr_player = curr_player.opponent
             
@@ -258,11 +253,10 @@ class SelfPlay:
         # Implement symmetries
         for example in examples:
             sym_list = [get_symmetries(inp) for inp in example[0]]
-            sym_list = np.transpose(sym_list, (1, 0 , 2, 3))
+            sym_list = np.transpose(sym_list, (1, 0, 2, 3))
             for variation in sym_list:
+                # Add policy symmetries
                 sym_examples.append([variation, example[1], example[2]])
-
-
 
         examples_tuples = [tuple(example) for example in examples]
 
@@ -276,25 +270,33 @@ class SelfPlay:
         total_games = self_play_args['pit_games']
 
         for _ in range(total_games):
-            mcts_new = MCTS(self_play_mode=False)
-            mcts_old = MCTS(self_play_mode=False)
+            mcts_new = MCTS()
+            mcts_old = MCTS()
 
             game_board = GameBoard()
             curr_player = PlayerColor.RED
             winner = None
 
             curr_bot = np.random.choice([(new_nnet, mcts_new), (old_nnet, mcts_old)])
-            curr_mcts, curr_nnet = curr_bot
 
             red_player = curr_bot
             blue_player = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
 
             while True:
-                next_action = curr_mcts.run(curr_nnet)
-                game_board.handle_valid_action(curr_player, next_action)
-                curr_player = curr_player.opponent
+                # Current player plays an action
+                curr_mcts, curr_nnet = curr_bot
+                next_policy = curr_mcts.run(curr_nnet)
+                next_action = greedy_select_from_policy(next_policy)
 
+                # Board and current player's MCTS is updated
+                curr_mcts.update_state(next_action)
+                game_board.handle_valid_action(curr_player, next_action)
+
+                # Player is switched
+                curr_player = curr_player.opponent
                 curr_bot = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
+
+                # New player updates their state
                 curr_mcts, curr_nnet = curr_bot
                 curr_mcts.update_state(next_action)
                 
