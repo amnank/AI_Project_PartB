@@ -11,7 +11,7 @@ from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import
 
 
 # hyperparameters
-mcts_args = {'num_MCTS_simulations': 5,
+mcts_args = {'num_MCTS_simulations': 25,
          'C': 1
         }
 
@@ -166,9 +166,9 @@ class MCTS:
         self.root = self.root.children[last_action_taken]
 
 self_play_args = {
-    'num_iters': 3,
-    'num_train_games': 2,
-    'pit_games': 10,
+    'num_iters': 1,
+    'num_train_games': 10,
+    'pit_games': 5,
     'threshold': 0.6
 }
 
@@ -280,6 +280,8 @@ class SelfPlay:
             for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
                 # Add policy symmetries
                 sym_examples.append([inp_var, policy_var, example[2]])
+        
+        examples += sym_examples
 
         examples_tuples = [tuple(example) for example in examples]
 
@@ -316,9 +318,18 @@ class SelfPlay:
                 curr_mcts.update_state(next_action)
                 game_board.handle_valid_action(curr_player, next_action)
 
+                if game_board.moves_played == 1:
+                    blue_nnet, blue_mcts = blue_player
+                    _ = blue_mcts.run(blue_nnet)
+
+                if game_board.moves_played % 10 == 0:
+                    print(f"{game_board.moves_played} moves played")
+
                 # Player is switched
                 curr_player = curr_player.opponent
                 curr_bot = (new_nnet, mcts_new) if curr_bot == (old_nnet, mcts_old) else (old_nnet, mcts_old)
+                curr_nnet, curr_mcts = curr_bot
+                curr_mcts.update_state(next_action)
                 
                 val = infexion_game.get_game_ended(game_board)
                 if val is not None:
@@ -332,6 +343,5 @@ class SelfPlay:
                 else:
                     new_nnet_won += 1 if blue_player[0] == new_nnet else 0
                     old_nnet_won += 1 if blue_player[0] == old_nnet else 0
-
 
         return new_nnet_won / total_games
