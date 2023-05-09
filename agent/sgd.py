@@ -1,5 +1,5 @@
 import numpy as np
-from agent_network import AgentNetwork
+from agent_network import AgentNetwork # pylint: disable=import-error
 
 
 class StochasticGradientDescent:
@@ -13,12 +13,12 @@ class StochasticGradientDescent:
         if self.velocities is None:
             self.velocities = [np.zeros_like(p) for p in params]
         
-        for i in range(len(params)):
+        for i,_ in enumerate(params):
             self.velocities[i] = self.momentum * self.velocities[i] + (1 - self.momentum) * grads[i]
             params[i] -= self.learning_rate * self.velocities[i]
 
 
-    def loss_function(pred_value, true_value, pred_policy, true_search_policy, parameters, c=1e-4):
+    def loss_function(self, pred_value, true_value, pred_policy, true_search_policy, c=1e-4):
         """
         Computes the loss function for AlphaZero self-play reinforcement learning algorithm.
 
@@ -35,7 +35,7 @@ class StochasticGradientDescent:
 
         value_loss = (true_value - pred_value) ** 2
         policy_loss = -(true_search_policy * np.log(pred_policy))
-        reg_term = c * np.sum([np.sum(param**2) for param in parameters])
-        loss = value_loss + policy_loss + reg_term
+        # reg_term = c * np.sum([np.sum(param**2) for param in parameters])
+        loss = value_loss + policy_loss #+ reg_term
 
         return loss

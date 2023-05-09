@@ -29,18 +29,15 @@ class Convolutional(Layer):
                 self.output[i] += sig.correlate2d(self.input[j], self.kernels[i,j], "valid")
         return self.output
 
-    def backward(self, d_outputs, learning_rate):
-        d_kernels = np.zeros(self.kernel_shape)
-        d_biases = d_outputs
+    def backward(self, d_outputs):
+        self.d_kernels = np.zeros(self.kernel_shape)
+        self.d_biases = d_outputs
         d_inputs = np.zeros(self.input_shape)
 
         for i in range(self.kernel_num):
             for j in range(self.input_depth):
-                d_kernels[i, j] = sig.correlate2d(self.input[j], d_outputs[i], "valid")
-                d_inputs[j] = sig.convolve2d(d_outputs[i], self.kernels[i, j], "full")
-
-        self.kernels -= learning_rate * d_kernels
-        self.biases -= learning_rate * d_biases
+                self.d_kernels[i, j] = sig.correlate2d(self.input[j], d_outputs[i], "valid")
+                self.d_inputs[j] = sig.convolve2d(d_outputs[i], self.kernels[i, j], "full")
 
         return d_inputs
     
@@ -51,6 +48,12 @@ class Convolutional(Layer):
         self.kernels = weights
         self.biases = biases
 
+    def get_grads(self):
+        return (self.d_kernels, self.d_biases)
+
+    def zero_grad(self):
+        self.d_kernels = np.zeros(self.kernel_shape)
+        self.d_biases = np.zeros(self.output_shape)
 
 class Flatten(Layer):
     def __init__(self, input_shape, output_shape):
@@ -64,11 +67,14 @@ class Flatten(Layer):
     def forward(self, layer_input):
         return np.reshape(layer_input, self.output_shape)
 
-    def backward(self, d_output, learning_rate):
+    def backward(self, d_output):
         return np.reshape(d_output, self.input_shape)
     
     def get_params(self):
         return None
     
     def set_params(self, weights, biases):
+        pass
+
+    def zero_grad(self):
         pass
