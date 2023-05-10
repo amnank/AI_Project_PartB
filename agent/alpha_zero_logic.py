@@ -40,7 +40,7 @@ class Node:
         """This function checks if a node is fully expanded or not
         """
         # if there are no expandable moves - if node has no children
-        return len(self.children) > 0
+        return (len(self.children) > 0 and self.expandable_moves.sum() == 0)
 
     def select_child(self):
         """
@@ -82,8 +82,19 @@ class Node:
         """
         Generate a successor state of this Node and add it to its children
         """
+        action_idx = np.random.choice(np.where(self.expandable_moves == 1)[0])
+        self.expandable_moves[action_idx] = 0
+        action = policy_actions[action_idx]
 
-        # self.expandable_moves = np.array(valid_action_mask(self.game_board, self.player_to_move))
+        pol = priors[action_idx][0]
+
+        board = GameBoard(self.game_board)    
+        player = self.player_to_move.opponent
+
+        board.handle_valid_action(player, action)
+        self.children.append(Node(player, board, pol, action_idx, self))   
+
+    def expand_root(self, priors):
         for i, pol in enumerate(priors):
             pol = pol[0]
             if pol == 0:
@@ -95,6 +106,8 @@ class Node:
 
             board.handle_valid_action(player, action)
             self.children.append(Node(player, board, pol, i, self))
+
+        self.expandable_moves = np.zeros(self.expandable_moves.shape)
     
     def backpropagate(self, value):
         self.value_sum += value
@@ -113,6 +126,13 @@ class MCTS:
 
     def search(self, player:'PlayerColor', game_board:'GameBoard'):
         root = Node(player, game_board)
+
+        state = create_input(root.player_to_move, root.game_board)
+        value = self.network.get_value(state)
+        policy = self.network.get_policy(state)
+
+        policy = np.multiply(policy, root.expandable_moves)
+        root.expand_root(policy)
 
         for _ in range(self.sims):
             node = root
@@ -153,8 +173,8 @@ class MCTS:
 
 self_play_args = {
     'num_iters': 5,
-    'num_train_games': 1,
-    'pit_games': 1,
+    'num_train_games': 20,
+    'pit_games': 10,
     'threshold': 0.55
 }
 
@@ -206,7 +226,6 @@ class SelfPlay:
                 exittime = time.process_time()
                 elapsed = exittime - self.starttime
                 print("TIME:", elapsed)
-                exit()
 
             print("Starting training")
             old_name = nnet.network_name
@@ -219,11 +238,8 @@ class SelfPlay:
             }
             
             print("Starting head to head")
-            new_nnet_won, old_nnet_won, total_games = self._pit(new_nnet, AgentNetwork(hyper_params, "Old"))
-            frac_win = new_nnet_won / total_games
+            frac_win = self._pit(new_nnet, AgentNetwork(hyper_params, "Old"))
             print(f"Frac won {frac_win}")
-            if old_nnet_won + new_nnet_won == 0:
-                break
 
 
         return new_nnet
@@ -250,13 +266,8 @@ class SelfPlay:
 
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
-            # if game_board.moves_played % 15 == 0:
-            #     print(f"{game_board.moves_played} moves played")
-
-                board = game_board.get_canonical_board(curr_player)
-                for r in board:
-                    print(r)
-                print()
+            if game_board.moves_played % 15 == 0:
+                print(f"{game_board.moves_played} moves played")
 
             curr_player = curr_player.opponent
             
@@ -323,8 +334,16 @@ class SelfPlay:
                 # Board and current player's MCTS is updated
                 game_board.handle_valid_action(curr_player, next_action)
 
-                if game_board.moves_played % 10 == 0:
+                if game_board.moves_played % 15 == 0:
                     print(f"{game_board.moves_played} moves played")
+                    if curr_mcts == red_player:
+                        board = game_board.get_canonical_board(PlayerColor.RED)
+                    else:
+                        board = game_board.get_canonical_board(PlayerColor.BLUE)
+
+                    for r in board:
+                        print(r)
+                    print()
 
                 curr_player = curr_player.opponent
                 curr_mcts = new_mcts if curr_mcts == old_mcts else old_mcts
@@ -340,10 +359,10 @@ class SelfPlay:
             
             if winner != 0:
                 if winner == int(PlayerColor.RED):
-                    new_nnet_won += 1 if red_player == new_nnet else 0
-                    old_nnet_won += 1 if red_player == old_nnet else 0
+                    new_nnet_won += 1 if red_player == new_mcts else 0
+                    old_nnet_won += 1 if red_player == old_mcts else 0
                 else:
-                    new_nnet_won += 1 if blue_player == new_nnet else 0
-                    old_nnet_won += 1 if blue_player == old_nnet else 0
+                    new_nnet_won += 1 if blue_player == new_mcts else 0
+                    old_nnet_won += 1 if blue_player == old_mcts else 0
 
-        return (new_nnet_won, old_nnet_won, total_games)
+        return new_nnet_won / total_games

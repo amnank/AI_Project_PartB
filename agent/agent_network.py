@@ -145,7 +145,7 @@ class AgentNetwork:
             
             # Compute the predicted policy and value
             predicted_policy, predicted_value = self.get_policy(state), self.get_value(state).item()
-            
+
             # Compute the total loss
             total_loss = self.optimizer.loss_function(predicted_value, value,\
                                                       predicted_policy, improved_policy, self.get_params())
