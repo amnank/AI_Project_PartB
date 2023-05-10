@@ -5,7 +5,7 @@ import random
 import numpy as np
 from agent_network import AgentNetwork        # pylint: disable=import-error
 from alpha_zero_helper import\
-    policy_actions, valid_action_mask, normalize_policy, create_input, sample_policy, greedy_select_from_policy, get_policy_symmetries   # pylint: disable=import-error
+    policy_actions, valid_action_mask, create_input, sample_policy, greedy_select_from_policy   # pylint: disable=import-error
 from infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
 from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 import time 
@@ -95,8 +95,9 @@ class Node:
         self.children.append(Node(player, board, pol, action_idx, self))   
 
     def expand_root(self, priors):
-        for i, pol in enumerate(priors):
-            pol = pol[0]
+
+        i = 0
+        for pol in np.nditer(priors, order='F'):
             if pol == 0:
                 continue
             
@@ -106,6 +107,7 @@ class Node:
 
             board.handle_valid_action(player, action)
             self.children.append(Node(player, board, pol, i, self))
+            i += 1
 
         self.expandable_moves = np.zeros(self.expandable_moves.shape)
     
@@ -120,7 +122,7 @@ class Node:
 class MCTS:
     """This class encapsulates the functionality of the Monte Carlo Tree Search
     """
-    def __init__(self, network:'AgentNetwork', sims=15):
+    def __init__(self, network:'AgentNetwork', sims=25):
         self.network = network
         self.sims = sims
 
@@ -160,10 +162,11 @@ class MCTS:
         action_space_shape = (len(policy_actions), 1)
         visit_counts = np.zeros(action_space_shape)
         action_probs = np.zeros(action_space_shape)
+        
         for child in root.children:
             visit_counts[child.action_index] = child.visit_count
             if child.value_sum <= 0:
-                action_probs[child.action_index] = 0.0001
+                action_probs[child.action_index] = 0.00000001
             else:
                 action_probs[child.action_index] = child.value_sum
 
@@ -173,8 +176,8 @@ class MCTS:
 
 self_play_args = {
     'num_iters': 5,
-    'num_train_games': 20,
-    'pit_games': 10,
+    'num_train_games': 10,
+    'pit_games': 5,
     'threshold': 0.55
 }
 
@@ -273,11 +276,6 @@ class SelfPlay:
             
             val = infexion_game.get_game_ended(game_board)
             if val is not None:
-                board = game_board.get_canonical_board(curr_player)
-                for r in board:
-                    print(r)
-                print()
-                print(f"Total power {game_board.count_total_power()}")
                 break
         
         for example in examples:
@@ -285,23 +283,8 @@ class SelfPlay:
                 example[2] = 0
             else:
                 example[2] = 1 if int(example[2]) == val else -1
-        
-
-        # sym_examples = []
-        # # Implement symmetries
-        # for example in examples:
-        #     inp_sym_list = [get_symmetries(inp) for inp in example[0]]
-        #     inp_sym_list = np.transpose(inp_sym_list, (1, 0, 2, 3))
-        #     policy_sym_list = get_policy_symmetries(example[1])
-
-        #     for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
-        #         # Add policy symmetries
-        #         sym_examples.append([inp_var, policy_var, example[2]])
-        
-        # examples += sym_examples
 
         examples_tuples = [tuple(example) for example in examples]
-
 
         return examples_tuples
     
@@ -318,8 +301,8 @@ class SelfPlay:
             curr_player = PlayerColor.RED
             winner = None
 
-            new_mcts = MCTS(new_nnet, 5)
-            old_mcts = MCTS(old_nnet, 5)
+            new_mcts = MCTS(new_nnet, 15)
+            old_mcts = MCTS(old_nnet, 15)
 
             curr_mcts = random.choice([new_mcts, old_mcts])
 
@@ -336,7 +319,7 @@ class SelfPlay:
 
                 if game_board.moves_played % 15 == 0:
                     print(f"{game_board.moves_played} moves played")
-                    if curr_mcts == red_player:
+                    if new_mcts == red_player:
                         board = game_board.get_canonical_board(PlayerColor.RED)
                     else:
                         board = game_board.get_canonical_board(PlayerColor.BLUE)
