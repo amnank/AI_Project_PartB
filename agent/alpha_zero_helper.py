@@ -19,6 +19,11 @@ for q in range(constants.BOARD_N):
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
 
 
+def normalize_policy(policy):
+    policy = np.array(policy)
+    policy = (policy / policy.sum()).flatten()
+    return policy
+
 def valid_action_mask(game_board:'GameBoard', player:'PlayerColor'):
         """This function creates a 343 x 1 vector corresponding to
         alpha_zero_helper.policy_actions with all the valid moves
@@ -105,8 +110,7 @@ def sample_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction | Spread Action: The sampled action
     """
-    policy = np.array(policy)
-    policy = (policy / policy.sum()).flatten()
+    policy = normalize_policy(policy)
     action = np.random.choice(np.array(policy_actions), p=policy)
     return action
 
@@ -119,8 +123,7 @@ def greedy_select_from_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction|SpreadAction: The selected action
     """
-    policy = np.array(policy)
-    policy = (policy / policy.sum()).flatten()
+    policy = normalize_policy(policy)
     action = policy_actions[int(np.array(policy).argmax())]
     return action
 

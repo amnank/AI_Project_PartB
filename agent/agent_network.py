@@ -5,6 +5,7 @@ from neuralnet.cnn import Convolutional, Flatten # pylint: disable=import-error
 from neuralnet.nn import Layer, tanH, Sigmoid # pylint: disable=import-error
 from neuralnet.model_IO import save_model, load_model # pylint: disable=import-error
 import numpy as np
+from alpha_zero_helper import normalize_policy
 
 
 class AgentNetwork:
@@ -143,7 +144,7 @@ class AgentNetwork:
             
             # Compute the predicted policy and value
             predicted_policy, predicted_value = self.get_policy(state), self.get_value(state).item()
-
+            
             # Compute the total loss
             total_loss = self.optimizer.loss_function(predicted_value, value,\
                                                       predicted_policy, improved_policy, self.get_params())

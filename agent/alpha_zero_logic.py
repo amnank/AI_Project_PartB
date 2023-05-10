@@ -5,14 +5,13 @@ import random
 import numpy as np
 from agent_network import AgentNetwork        # pylint: disable=import-error
 from alpha_zero_helper import\
-    policy_actions, valid_action_mask, get_symmetries, create_input, sample_policy, greedy_select_from_policy, get_policy_symmetries   # pylint: disable=import-error
+    policy_actions, valid_action_mask, normalize_policy, create_input, sample_policy, greedy_select_from_policy, get_policy_symmetries   # pylint: disable=import-error
 from infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
 from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 
 
 # hyperparameters
-mcts_args = {'num_MCTS_simulations': 25,
-         'C': 1
+mcts_args = {'num_MCTS_simulations': 25
         }
 
 class Node:
@@ -20,13 +19,15 @@ class Node:
     This is the Node class (represents a node in the search tree)
     """
 
-    def __init__(self, player:'PlayerColor', game_board:'GameBoard', action_index=None, parent=None):
+    def __init__(self, player:'PlayerColor', game_board:'GameBoard',prior=0, action_index=None, parent=None):
         self.player_to_move = player
         self.game_board = game_board
 
         # number of times this node was visited in MCTS
         self.visit_count = 0
+
         # prior probability
+        self.prior = prior
         self.value_sum = 0
         self.action_index = action_index
 
@@ -58,31 +59,31 @@ class Node:
                 best_child = child
         
         return best_child
+
+    def get_value(self):
+        if self.visit_count == 0:
+            return 0
+        
+        return self.value_sum / self.visit_count
     
     def _ucb_score(self, child:'Node'):
         """
         Calculates UCB score
         """
 
-        q_value = 1 - ((child.value_sum / child.visit_count) + 1) / 2
-        return q_value + mcts_args["C"] * math.sqrt(math.log(self.visit_count) / child.visit_count)
+        q_value = 1 - (child.value_sum / (child.visit_count + 1)) / 2
+        return q_value + child.prior * math.sqrt(math.log(self.visit_count) / (child.visit_count + 1))
     
 
-    def expand(self):
+    def expand(self, priors):
         """
         Generate a successor state of this Node and add it to its children
         """
 
         # self.expandable_moves = np.array(valid_action_mask(self.game_board, self.player_to_move))
-        try:
-            action_index = np.random.choice(np.where(self.expandable_moves == 1)[0])
-        except:
-            print(self.expandable_moves)
-            print(valid_action_mask(self.game_board, self.player_to_move))
-            print(self.game_board.get_canonical_board(self.player_to_move))
-            print(infexion_game.get_game_ended(self.game_board))
-            exit()
 
+        action_index = np.random.choice(np.where(self.expandable_moves == 1)[0])
+        prior = priors[action_index]
         action = policy_actions[action_index]
 
         self.expandable_moves[action_index] = 0
@@ -91,7 +92,7 @@ class Node:
         child_board.handle_valid_action(self.player_to_move, action)
         child_player = self.player_to_move.opponent
 
-        child = Node(child_player, child_board, action_index, self)
+        child = Node(child_player, child_board, prior, action_index, self)
         self.children.append(child)
         return child
     
@@ -111,6 +112,9 @@ class MCTS:
 
     def search(self, player:'PlayerColor', game_board:'GameBoard'):
         root = Node(player, game_board)
+        root_state = create_input(root.player_to_move, root.game_board)
+        policy, value =  normalize_policy(self.network.get_policy(root_state)), self.network.get_value(root_state)
+        root.expand(policy)
 
         for _ in range(mcts_args["num_MCTS_simulations"]):
             node = root
@@ -125,22 +129,29 @@ class MCTS:
                 value = -1
 
             if value is None:
-                node = node.expand()
-                value = self.network.get_value(create_input(node.player_to_move, node.game_board))
+                state = create_input(node.player_to_move, node.game_board)
+                value = self.network.get_value(state)
+                policy = self.network.get_policy(state)
+
+                policy = np.multiply(policy, node.expandable_moves)
+                node = node.expand(policy)
 
             node.backpropagate(value)
 
         action_space_shape = (len(policy_actions), 1)
+        visit_counts = np.zeros(action_space_shape)
         action_probs = np.zeros(action_space_shape)
         for child in root.children:
-            action_probs[child.action_index] = child.visit_count
-        action_probs /= np.sum(action_probs)
+            visit_counts[child.action_index] = child.visit_count
+            action_probs[child.action_index] = child.value_sum
+
+        action_probs /= np.sum(visit_counts)
         return action_probs
 
 
 self_play_args = {
     'num_iters': 5,
-    'num_train_games': 40,
+    'num_train_games': 2,
     'pit_games': 10,
     'threshold': 0.55
 }
