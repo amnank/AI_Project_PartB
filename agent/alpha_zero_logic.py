@@ -199,10 +199,11 @@ class SelfPlay:
             }
             
             print("Starting head to head")
-            frac_win = self._pit(new_nnet, AgentNetwork(hyper_params, "Old"))
+            new_nnet_won, old_nnet_won, total_games = self._pit(new_nnet, AgentNetwork(hyper_params, "Old"))
+            frac_win = new_nnet_won / total_games
             print(f"Frac won {frac_win}")
-            # if frac_win == 0:
-            #     examples = []
+            if old_nnet_won + new_nnet_won == 0:
+                break
 
         return new_nnet
         
@@ -319,4 +320,4 @@ class SelfPlay:
                     new_nnet_won += 1 if blue_player == new_nnet else 0
                     old_nnet_won += 1 if blue_player == old_nnet else 0
 
-        return new_nnet_won / total_games
+        return (new_nnet_won, old_nnet_won, total_games)
