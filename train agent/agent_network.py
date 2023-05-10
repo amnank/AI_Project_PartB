@@ -1,10 +1,11 @@
 import sys
 sys.path.append("neuralnet")
-from .sgd import StochasticGradientDescent # pylint: disable=import-error
-from .neuralnet.cnn import Convolutional, Flatten # pylint: disable=import-error
-from .neuralnet.nn import Layer, tanH, Sigmoid # pylint: disable=import-error
-from .neuralnet.model_IO import save_model, load_model # pylint: disable=import-error
+from sgd import StochasticGradientDescent # pylint: disable=import-error
+from neuralnet.cnn import Convolutional, Flatten # pylint: disable=import-error
+from neuralnet.nn import Layer, tanH, Sigmoid # pylint: disable=import-error
+from neuralnet.model_IO import save_model, load_model # pylint: disable=import-error
 import numpy as np
+from alpha_zero_helper import normalize_policy
 
 
 class AgentNetwork:

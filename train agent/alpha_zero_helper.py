@@ -1,9 +1,8 @@
 import sys
 sys.path.append("game")
 import numpy as np
-import random
-from .infexion_logic import infexion_game, GameBoard # pylint: disable=import-error
-from referee.game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
+from infexion_logic import infexion_game, GameBoard # pylint: disable=import-error
+from game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
 
 policy_actions = []
 for q in range(constants.BOARD_N):
@@ -22,6 +21,7 @@ for q in range(constants.BOARD_N):
 policy_actions = np.array(policy_actions)
 
 def normalize_policy(policy):
+    policy = np.array(policy)
     policy = (policy / policy.sum()).flatten()
     return policy
 
@@ -111,9 +111,9 @@ def sample_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction | Spread Action: The sampled action
     """
-
-    policy = normalize_policy(policy)
-    action = random.choices(policy_actions, weights=policy)[0]
+    policy = np.array(policy)
+    policy = (policy / policy.sum()).flatten()
+    action = np.random.choice(np.array(policy_actions), p=policy)
     return action
 
 def greedy_select_from_policy(policy) -> 'SpawnAction|SpreadAction':
@@ -126,7 +126,7 @@ def greedy_select_from_policy(policy) -> 'SpawnAction|SpreadAction':
         SpawnAction|SpreadAction: The selected action
     """
     policy = normalize_policy(policy)
-    action = policy_actions[int(policy.argmax())]
+    action = policy_actions[int(np.array(policy).argmax())]
     return action
 
 def _reverse_board_sign(board):

@@ -1,10 +1,10 @@
 # COMP30024 Artificial Intelligence, Semester 1 2023
 # Project Part B: Game Playing Agent
 from referee.game import \
-    PlayerColor, Action
+    PlayerColor, Action, SpawnAction, HexPos
 from .agent_network import AgentNetwork
 from .alpha_zero_logic import MCTS
-from .alpha_zero_helper import greedy_select_from_policy
+from .alpha_zero_helper import greedy_select_from_policy, sample_policy
 from .infexion_logic import GameBoard
 
 # This is the entry point for your game playing agent. Currently the agent
@@ -22,30 +22,26 @@ class Agent:
         match color:
             case PlayerColor.RED:
                 print("Testing: I am playing as red")
-                hyper_params = {
-                    "is_randomized": False,
-                    "load_network": "Network 4",
-                    "input_depth": 14
-                }
             case PlayerColor.BLUE:
                 print("Testing: I am playing as blue")
-                hyper_params = {
-                    "is_randomized": False,
-                    "load_network": "Network 3",
-                    "input_depth": 14
-                }
 
-
+        hyper_params = {
+            "is_randomized": False,
+            "load_network": "Network 9",
+            "input_depth": 14
+        }
+        
         self.board = GameBoard()
         self.network = AgentNetwork(hyper_params, "GameNet1")
-        self.mcts = MCTS(self.network, 10)
+        self.mcts = MCTS()
 
     def action(self, **referee: dict) -> Action:
         """
         Return the next action to take.
         """
 
-        next_policy = self.mcts.search(self._color, self.board)
+        self.mcts = MCTS(self.board, self._color)
+        next_policy = self.mcts.run(self.network)
         action = greedy_select_from_policy(next_policy)
         return action
 
@@ -53,6 +49,10 @@ class Agent:
         """
         Update the agent with the last player's action.
         """
+        # if self._color == PlayerColor.BLUE and self.board.moves_played == 0:
+        #     _ = self.mcts.run(self.network)
+        
+        # self.mcts.update_state(action)
 
         self.board.handle_valid_action(color, action)
         

@@ -3,11 +3,11 @@ sys.path.append("game")
 import math
 import random
 import numpy as np
-from .agent_network import AgentNetwork        # pylint: disable=import-error
-from .alpha_zero_helper import\
+from agent_network import AgentNetwork        # pylint: disable=import-error
+from alpha_zero_helper import\
     policy_actions, valid_action_mask, create_input, sample_policy, greedy_select_from_policy   # pylint: disable=import-error
-from .infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
-from referee.game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
+from infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
+from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 import time 
 
 
