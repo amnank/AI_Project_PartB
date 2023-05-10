@@ -30,12 +30,12 @@ class StochasticGradientDescent:
         """
 
         true_search_policy = np.array(true_search_policy)
-        true_search_policy = true_search_policy.reshape((343, 1))
+        #true_search_policy = true_search_policy.reshape((343, 1))
 
         value_loss = 0.5 * ((true_value - pred_value) ** 2)
         policy_loss = -np.matmul(true_search_policy.T, np.log(pred_policy)).item()
 
-        self.reg_term = self.c * np.sum([np.sum(param**2) for param in params])
+        self.reg_term = self.c * np.sum(params**2)
         loss = value_loss + policy_loss + self.reg_term
 
         return loss

@@ -18,6 +18,12 @@ for q in range(constants.BOARD_N):
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpLeft))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
 
+policy_actions = np.array(policy_actions)
+
+def normalize_policy(policy):
+    policy = np.array(policy)
+    policy = (policy / policy.sum()).flatten()
+    return policy
 
 def normalize_policy(policy):
     policy = np.array(policy)

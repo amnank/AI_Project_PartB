@@ -8,6 +8,7 @@ from alpha_zero_helper import\
     policy_actions, valid_action_mask, normalize_policy, create_input, sample_policy, greedy_select_from_policy, get_policy_symmetries   # pylint: disable=import-error
 from infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
 from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
+import time 
 
 
 
@@ -177,6 +178,8 @@ class SelfPlay:
         Approach and returns the final trained network, while dumping all
         previous ones
         """
+        self.starttime = time.process_time()
+        
         for i in range(self_play_args['num_iters']):
             self.network.network_name = f"Network {i}"
             if should_dump:
@@ -199,6 +202,11 @@ class SelfPlay:
                 print(f"Playing game {i}")
                 # collect examples from this game
                 examples += self._execute_game(nnet)
+                ## one game ended
+                exittime = time.process_time()
+                elapsed = exittime - self.starttime
+                print("TIME:", elapsed)
+                exit()
 
             print("Starting training")
             old_name = nnet.network_name
@@ -216,6 +224,7 @@ class SelfPlay:
             print(f"Frac won {frac_win}")
             if old_nnet_won + new_nnet_won == 0:
                 break
+
 
         return new_nnet
         
@@ -241,8 +250,8 @@ class SelfPlay:
 
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
-            if game_board.moves_played % 15 == 0:
-                print(f"{game_board.moves_played} moves played")
+            # if game_board.moves_played % 15 == 0:
+            #     print(f"{game_board.moves_played} moves played")
 
                 board = game_board.get_canonical_board(curr_player)
                 for r in board:
