@@ -3,7 +3,7 @@ import numpy as np
 
 class StochasticGradientDescent:
 
-    def __init__(self, l2_lambda=0.001, learning_rate=0.01):
+    def __init__(self, l2_lambda=0.001, learning_rate=0.1):
         self.learning_rate = learning_rate
         self.l2_lambda = l2_lambda
         self.c=1e-4

@@ -20,162 +20,129 @@ class Node:
     This is the Node class (represents a node in the search tree)
     """
 
-    def __init__(self, player:'PlayerColor', game_board:'GameBoard', path, prior = 0, is_valid=True):
-        self.is_valid = is_valid
-        self.player = player
+    def __init__(self, player:'PlayerColor', game_board:'GameBoard', action_index=None, parent=None):
+        self.player_to_move = player
         self.game_board = game_board
 
         # number of times this node was visited in MCTS
         self.visit_count = 0
-
         # prior probability
         self.value_sum = 0
-        self.prior = prior
+        self.action_index = action_index
 
         # All legal children that can be reached
-        self.children = {}
+        self.children = []
+        self.expandable_moves = np.array(valid_action_mask(self.game_board, self.player_to_move))
 
         # Path to root (action, start_state)
-        self.path = path
+        self.parent = parent
 
     def is_fully_expanded(self) -> bool:
         """This function checks if a node is fully expanded or not
         """
         # if there are no expandable moves - if node has no children
-        return len(self.children) > 0
+        return np.sum(self.expandable_moves) == 0 and len(self.children) > 0
 
     def select_child(self):
         """
         Selects child with highest UCB score and returns the key, value pair
         """
         best_score = -np.inf
+        best_child = None
 
-        for action, child in self.children.items():
-            if not child.is_valid:
-                continue
-
+        for child in self.children:
             score = self._ucb_score(child)
 
             if score > best_score:
-                best_action = action
                 best_score = score
                 best_child = child
         
-        return (best_action, best_child)
+        return best_child
     
-    def _ucb_score(self, child):
+    def _ucb_score(self, child:'Node'):
         """
         Calculates UCB score
         """
-        
-        if child.visit_count == 0:
-            q_value = 0
-        else:
-            # to ensure its between 0 and 1
-            q_value = 1 - (child.value_sum / child.visit_count) + 1 / 2
 
-        sum_counts = sum([child.visit_count for child in self.children.values()])
-        return q_value + mcts_args['C'] * math.sqrt(sum_counts / (1 + child.visit_count)) * child.prior
+        q_value = 1 - ((child.value_sum / child.visit_count) + 1) / 2
+        return q_value + mcts_args["C"] * math.sqrt(math.log(self.visit_count) / child.visit_count)
     
 
-    def expand(self, policy):
+    def expand(self):
         """
-        Generates all successor states of this Node and adds them as its children
+        Generate a successor state of this Node and add it to its children
         """
 
-        # zip policy and actions
-        action_probs = zip(policy_actions, valid_action_mask(self.game_board, self.player), policy)
-        
-        for action, is_valid, prob in action_probs:
-            if is_valid:
-                # Execute the action on a new game board
-                next_game_board = GameBoard(self.game_board)
-                next_game_board.handle_valid_action(self.player, action)
+        # self.expandable_moves = np.array(valid_action_mask(self.game_board, self.player_to_move))
+        try:
+            action_index = np.random.choice(np.where(self.expandable_moves == 1)[0])
+        except:
+            print(self.expandable_moves)
+            print(valid_action_mask(self.game_board, self.player_to_move))
+            print(self.game_board.get_canonical_board(self.player_to_move))
+            print(infexion_game.get_game_ended(self.game_board))
+            exit()
 
-                # Switch players and create a new node
-                self.children[action] = Node(self.player.opponent, next_game_board, self.path + [(action, self)], prob, is_valid=True)
-            else:
-                self.children[action] = Node(self.player.opponent, self.game_board, self.path + [(action, self)], is_valid=False)
+        action = policy_actions[action_index]
 
+        self.expandable_moves[action_index] = 0
+
+        child_board = GameBoard(self.game_board)
+        child_board.handle_valid_action(self.player_to_move, action)
+        child_player = self.player_to_move.opponent
+
+        child = Node(child_player, child_board, action_index, self)
+        self.children.append(child)
+        return child
+    
+    def backpropagate(self, value):
+        self.value_sum += value
+        self.visit_count += 1
+
+        value = value * -1
+        if self.parent is not None:
+            self.parent.backpropagate(value)
 
 class MCTS:
     """This class encapsulates the functionality of the Monte Carlo Tree Search
     """
-    def __init__(self, game_board:'GameBoard|None'=None, player:'PlayerColor|None'=None):
-        # Initialize the root node with the player as RED, starting board and prior of 0
-        if game_board is None and player is None:
-            self.root = Node(PlayerColor.RED, GameBoard(), [], 0)
-        elif game_board is not None and player is not None:
-            self.root = Node(player, game_board, [], 0)
-        else:
-            raise ValueError("Bad initialization of MCTS")
+    def __init__(self, network:'AgentNetwork'):
+        self.network = network
 
+    def search(self, player:'PlayerColor', game_board:'GameBoard'):
+        root = Node(player, game_board)
 
+        for _ in range(mcts_args["num_MCTS_simulations"]):
+            node = root
 
-    def run(self, network:'AgentNetwork'):
-        """This funcion runs the specified number of iterations of MCTS and
-            returns the improved policy
+            while node.is_fully_expanded():
+                node = node.select_child()
 
-        Args:
-            current_player (PlayerColor): The phasing player
-            actual_board (GameBoard): The board state to output the policy from
-
-        Returns:
-            343 x 1: Policy vector
-        """
-
-        # iterate through simulations
-        for i in range(mcts_args['num_MCTS_simulations']):
-
-            # keep selecting next child until we reach an unexpanded node
-            child_node = self.root
-            while child_node.is_fully_expanded():
-                _, child_node = child_node.select_child()
-                
-
-           # once we reach a leaf node:
-            value = infexion_game.get_game_ended(child_node.game_board)
+            value = infexion_game.get_game_ended(node.game_board)
+            if value == int(node.player_to_move):
+                value = 1
+            elif value == int(node.player_to_move.opponent):
+                value = -1
 
             if value is None:
-                # game is not over, get value from network and expand
-                inp = create_input(child_node.player, child_node.game_board)
-                value, policy = network.get_value(inp), network.get_policy(inp)
-                child_node.expand(policy)
+                node = node.expand()
+                value = self.network.get_value(create_input(node.player_to_move, node.game_board))
 
-            child_node.visit_count += 1
-            # backup the value
-            for _, back_node in reversed(child_node.path):
-                # update reward
-                if back_node.player == child_node.player:
-                    back_node.value_sum += value
-                else:
-                    back_node.value_sum += -1 * value
+            node.backpropagate(value)
 
-                back_node.visit_count += 1
+        action_space_shape = (len(policy_actions), 1)
+        action_probs = np.zeros(action_space_shape)
+        for child in root.children:
+            action_probs[child.action_index] = child.visit_count
+        action_probs /= np.sum(action_probs)
+        return action_probs
 
-        # Calculate the improved policy
-        action_counts = [child.visit_count for child in self.root.children.values()]
-
-        sum_counts = sum(action_counts)
-        improved_policy = np.array([count/sum_counts for count in action_counts])
-
-        return improved_policy
-    
-    def update_state(self, last_action_taken:'SpreadAction|SpawnAction|None'):
-        """Call this function when the opponent performs an action that you have
-        to update in your own representation of the board
-
-        Args:
-            last_action_taken (SpreadAction|SpawnAction|None, optional): Last Action Taken.
-        """
-            
-        self.root = self.root.children[last_action_taken]
 
 self_play_args = {
     'num_iters': 5,
-    'num_train_games': 1,
-    'pit_games': 5,
-    'threshold': 0.6
+    'num_train_games': 100,
+    'pit_games': 10,
+    'threshold': 0.55
 }
 
 class SelfPlay:
@@ -234,6 +201,8 @@ class SelfPlay:
             print("Starting head to head")
             frac_win = self._pit(new_nnet, AgentNetwork(hyper_params, "Old"))
             print(f"Frac won {frac_win}")
+            if frac_win == 0:
+                examples = []
 
         return new_nnet
         
@@ -249,14 +218,13 @@ class SelfPlay:
         """
         examples = []
         # starts a new game
-        mcts = MCTS()
+        mcts = MCTS(nnet)
         game_board = GameBoard()
         curr_player = PlayerColor.RED
 
         while True:
-            improved_policy = mcts.run(nnet)
+            improved_policy = mcts.search(curr_player, game_board)
             next_action = sample_policy(improved_policy)
-            mcts.update_state(next_action)
 
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
@@ -267,6 +235,11 @@ class SelfPlay:
             
             val = infexion_game.get_game_ended(game_board)
             if val is not None:
+                board = game_board.get_canonical_board(curr_player)
+                for r in board:
+                    print(r)
+                print()
+                print(f"Total power {game_board.count_total_power()}")
                 break
         
         for example in examples:
@@ -276,18 +249,18 @@ class SelfPlay:
                 example[2] = 1 if int(example[2]) == val else -1
         
 
-        sym_examples = []
-        # Implement symmetries
-        for example in examples:
-            inp_sym_list = [get_symmetries(inp) for inp in example[0]]
-            inp_sym_list = np.transpose(inp_sym_list, (1, 0, 2, 3))
-            policy_sym_list = get_policy_symmetries(example[1])
+        # sym_examples = []
+        # # Implement symmetries
+        # for example in examples:
+        #     inp_sym_list = [get_symmetries(inp) for inp in example[0]]
+        #     inp_sym_list = np.transpose(inp_sym_list, (1, 0, 2, 3))
+        #     policy_sym_list = get_policy_symmetries(example[1])
 
-            for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
-                # Add policy symmetries
-                sym_examples.append([inp_var, policy_var, example[2]])
+        #     for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
+        #         # Add policy symmetries
+        #         sym_examples.append([inp_var, policy_var, example[2]])
         
-        examples += sym_examples
+        # examples += sym_examples
 
         examples_tuples = [tuple(example) for example in examples]
 
@@ -307,37 +280,35 @@ class SelfPlay:
             curr_player = PlayerColor.RED
             winner = None
 
-            curr_nnet = random.choice([new_nnet, old_nnet])
+            new_mcts = MCTS(new_nnet)
+            old_mcts = MCTS(old_nnet)
 
-            red_player = curr_nnet
-            blue_player = new_nnet if curr_nnet == old_nnet else old_nnet
+            curr_mcts = random.choice([new_mcts, old_mcts])
+
+            red_player = curr_mcts
+            blue_player = new_mcts if curr_mcts == old_mcts else old_mcts
 
             while True:
                 # Current player plays an action
-                curr_mcts = MCTS(game_board, curr_player)
-                next_policy = curr_mcts.run(curr_nnet)
+                next_policy = curr_mcts.search(curr_player, game_board)
                 next_action = greedy_select_from_policy(next_policy)
 
                 # Board and current player's MCTS is updated
-                # curr_mcts.update_state(next_action)
                 game_board.handle_valid_action(curr_player, next_action)
-
-                # if game_board.moves_played == 1:
-                #     blue_nnet, blue_mcts = blue_player
-                #     _ = blue_mcts.run(blue_nnet)
 
                 if game_board.moves_played % 50 == 0:
                     print(f"{game_board.moves_played} moves played")
 
-                # Player is switched
                 curr_player = curr_player.opponent
-                curr_nnet = new_nnet if curr_nnet == old_nnet else old_nnet
-                # curr_nnet, curr_mcts = curr_nnet
-                # curr_mcts.update_state(next_action)
+                curr_mcts = new_mcts if curr_mcts == old_mcts else old_mcts
                 
                 val = infexion_game.get_game_ended(game_board)
                 if val is not None:
                     winner = val
+                    board = game_board.get_canonical_board(curr_player)
+                    for r in board:
+                        print(r)
+                    print()
                     break
             
             if winner != 0:
