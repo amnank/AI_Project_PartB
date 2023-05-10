@@ -66,8 +66,8 @@ class InfexionGame:
             int|None: The value of the game state
         """
         if game_board.moves_played == constants.MAX_TURNS:
-            red_count = game_board.count_total_power(PlayerColor.RED)
-            blue_count = game_board.count_total_power(PlayerColor.BLUE)
+            red_count = game_board.count_power(PlayerColor.RED)
+            blue_count = game_board.count_power(PlayerColor.BLUE)
 
             if red_count > blue_count and (red_count - blue_count > constants.WIN_POWER_DIFF):
                 return int(PlayerColor.RED)
@@ -257,6 +257,16 @@ class GameBoard:
             for q in range(constants.BOARD_N):
                 cell = self.total_board[r][q]
                 total_power += cell.power
+        
+        return total_power
+    
+    def count_power(self, player:'PlayerColor'):
+        total_power = 0
+        for r in range(constants.BOARD_N):
+            for q in range(constants.BOARD_N):
+                cell = self.total_board[r][q]
+                if cell.player == player:
+                    total_power += cell.power
         
         return total_power
 
