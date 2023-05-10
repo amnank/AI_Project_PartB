@@ -18,6 +18,7 @@ for q in range(constants.BOARD_N):
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpLeft))
         policy_actions.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
 
+policy_actions = np.array(policy_actions)
 
 def valid_action_mask(game_board:'GameBoard', player:'PlayerColor'):
         """This function creates a 343 x 1 vector corresponding to
