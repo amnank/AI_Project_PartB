@@ -10,9 +10,6 @@ from infexion_logic import infexion_game, GameBoard             # pylint: disabl
 from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 
 
-# hyperparameters
-mcts_args = {'num_MCTS_simulations': 25
-        }
 
 class Node:
     """
@@ -33,7 +30,7 @@ class Node:
 
         # All legal children that can be reached
         self.children = []
-        self.expandable_moves = np.array(valid_action_mask(self.game_board, self.player_to_move))
+        self.expandable_moves = np.array([valid_action_mask(self.game_board, self.player_to_move)]).T
 
         # Path to root (action, start_state)
         self.parent = parent
@@ -42,7 +39,7 @@ class Node:
         """This function checks if a node is fully expanded or not
         """
         # if there are no expandable moves - if node has no children
-        return np.sum(self.expandable_moves) == 0 and len(self.children) > 0
+        return len(self.children) > 0
 
     def select_child(self):
         """
@@ -71,8 +68,13 @@ class Node:
         Calculates UCB score
         """
 
-        q_value = 1 - (child.value_sum / (child.visit_count + 1)) / 2
-        return q_value + child.prior * math.sqrt(math.log(self.visit_count) / (child.visit_count + 1))
+        prior_score  = child.prior * math.sqrt(self.visit_count) / (child.visit_count + 1)
+        if child.visit_count > 0:
+            value_score = -1 * child.get_value()
+        else:
+            value_score = 0
+
+        return value_score + prior_score
     
 
     def expand(self, priors):
@@ -81,20 +83,17 @@ class Node:
         """
 
         # self.expandable_moves = np.array(valid_action_mask(self.game_board, self.player_to_move))
+        for i, pol in enumerate(priors):
+            pol = pol[0]
+            if pol == 0:
+                continue
+            
+            action = policy_actions[i]
+            board = GameBoard(self.game_board)
+            player = self.player_to_move.opponent
 
-        action_index = np.random.choice(np.where(self.expandable_moves == 1)[0])
-        prior = priors[action_index]
-        action = policy_actions[action_index]
-
-        self.expandable_moves[action_index] = 0
-
-        child_board = GameBoard(self.game_board)
-        child_board.handle_valid_action(self.player_to_move, action)
-        child_player = self.player_to_move.opponent
-
-        child = Node(child_player, child_board, prior, action_index, self)
-        self.children.append(child)
-        return child
+            board.handle_valid_action(player, action)
+            self.children.append(Node(player, board, pol, i, self))
     
     def backpropagate(self, value):
         self.value_sum += value
@@ -107,16 +106,14 @@ class Node:
 class MCTS:
     """This class encapsulates the functionality of the Monte Carlo Tree Search
     """
-    def __init__(self, network:'AgentNetwork'):
+    def __init__(self, network:'AgentNetwork', sims=15):
         self.network = network
+        self.sims = sims
 
     def search(self, player:'PlayerColor', game_board:'GameBoard'):
         root = Node(player, game_board)
-        root_state = create_input(root.player_to_move, root.game_board)
-        policy, value =  normalize_policy(self.network.get_policy(root_state)), self.network.get_value(root_state)
-        root.expand(policy)
 
-        for _ in range(mcts_args["num_MCTS_simulations"]):
+        for _ in range(self.sims):
             node = root
 
             while node.is_fully_expanded():
@@ -134,7 +131,8 @@ class MCTS:
                 policy = self.network.get_policy(state)
 
                 policy = np.multiply(policy, node.expandable_moves)
-                node = node.expand(policy)
+                node.expand(policy)
+                
 
             node.backpropagate(value)
 
@@ -143,7 +141,10 @@ class MCTS:
         action_probs = np.zeros(action_space_shape)
         for child in root.children:
             visit_counts[child.action_index] = child.visit_count
-            action_probs[child.action_index] = child.value_sum
+            if child.value_sum <= 0:
+                action_probs[child.action_index] = 0.0001
+            else:
+                action_probs[child.action_index] = child.value_sum
 
         action_probs /= np.sum(visit_counts)
         return action_probs
@@ -151,8 +152,8 @@ class MCTS:
 
 self_play_args = {
     'num_iters': 5,
-    'num_train_games': 2,
-    'pit_games': 10,
+    'num_train_games': 1,
+    'pit_games': 1,
     'threshold': 0.55
 }
 
@@ -243,6 +244,11 @@ class SelfPlay:
             if game_board.moves_played % 15 == 0:
                 print(f"{game_board.moves_played} moves played")
 
+                board = game_board.get_canonical_board(curr_player)
+                for r in board:
+                    print(r)
+                print()
+
             curr_player = curr_player.opponent
             
             val = infexion_game.get_game_ended(game_board)
@@ -292,8 +298,8 @@ class SelfPlay:
             curr_player = PlayerColor.RED
             winner = None
 
-            new_mcts = MCTS(new_nnet)
-            old_mcts = MCTS(old_nnet)
+            new_mcts = MCTS(new_nnet, 5)
+            old_mcts = MCTS(old_nnet, 5)
 
             curr_mcts = random.choice([new_mcts, old_mcts])
 
@@ -308,7 +314,7 @@ class SelfPlay:
                 # Board and current player's MCTS is updated
                 game_board.handle_valid_action(curr_player, next_action)
 
-                if game_board.moves_played % 50 == 0:
+                if game_board.moves_played % 10 == 0:
                     print(f"{game_board.moves_played} moves played")
 
                 curr_player = curr_player.opponent
