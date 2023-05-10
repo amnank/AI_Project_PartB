@@ -174,7 +174,7 @@ class MCTS:
 
 
 self_play_args = {
-    'num_iters': 10,
+    'num_iters': 5,
     'num_train_games': 50,
     'pit_games': 10,
     'threshold': 0.55
@@ -333,10 +333,7 @@ class SelfPlay:
                 val = infexion_game.get_game_ended(game_board)
                 if val is not None:
                     winner = val
-                    board = game_board.get_canonical_board(curr_player)
-                    for r in board:
-                        print(r)
-                    print()
+                    print(f"Winner: {winner}")
                     break
             
             if winner != 0:
@@ -346,5 +343,7 @@ class SelfPlay:
                 else:
                     new_nnet_won += 1 if blue_player == new_mcts else 0
                     old_nnet_won += 1 if blue_player == old_mcts else 0
+                print(f"Old won: {old_nnet_won}")
+                print(f"New won: {new_nnet_won}")
 
         return new_nnet_won / total_games
