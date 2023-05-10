@@ -108,7 +108,7 @@ def sample_policy(policy) -> 'SpawnAction|SpreadAction':
     """
     policy = np.array(policy)
     policy = (policy / policy.sum()).flatten()
-    action = np.random.choice(np.array(policy_actions), p=policy)
+    action = np.random.choice(policy_actions, p=policy)
     return action
 
 def greedy_select_from_policy(policy) -> 'SpawnAction|SpreadAction':
