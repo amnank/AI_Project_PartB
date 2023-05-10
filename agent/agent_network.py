@@ -129,8 +129,9 @@ class AgentNetwork:
             weights, biases = params
             out_params = out_params + weights.flatten().tolist()
             out_params = out_params + biases.flatten().tolist()
+            
 
-        return out_params
+        return np.array(out_params)
 
     def train(self, training_examples):
         i = 0
