@@ -174,9 +174,9 @@ class MCTS:
 
 
 self_play_args = {
-    'num_iters': 5,
-    'num_train_games': 10,
-    'pit_games': 5,
+    'num_iters': 10,
+    'num_train_games': 50,
+    'pit_games': 10,
     'threshold': 0.55
 }
 
