@@ -25,11 +25,6 @@ def normalize_policy(policy):
     policy = (policy / policy.sum()).flatten()
     return policy
 
-def normalize_policy(policy):
-    policy = np.array(policy)
-    policy = (policy / policy.sum()).flatten()
-    return policy
-
 def valid_action_mask(game_board:'GameBoard', player:'PlayerColor'):
         """This function creates a 343 x 1 vector corresponding to
         alpha_zero_helper.policy_actions with all the valid moves
@@ -116,7 +111,8 @@ def sample_policy(policy) -> 'SpawnAction|SpreadAction':
     Returns:
         SpawnAction | Spread Action: The sampled action
     """
-    policy = normalize_policy(policy)
+    policy = np.array(policy)
+    policy = (policy / policy.sum()).flatten()
     action = np.random.choice(np.array(policy_actions), p=policy)
     return action
 
