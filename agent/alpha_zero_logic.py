@@ -201,8 +201,8 @@ class SelfPlay:
             print("Starting head to head")
             frac_win = self._pit(new_nnet, AgentNetwork(hyper_params, "Old"))
             print(f"Frac won {frac_win}")
-            if frac_win == 0:
-                examples = []
+            # if frac_win == 0:
+            #     examples = []
 
         return new_nnet
         
