@@ -44,36 +44,6 @@ def valid_action_mask(game_board:'GameBoard', player:'PlayerColor'):
 
         return mask
 
-def get_policy_symmetries(policy):
-    """This function returns the list of symmetries of a policy vector,
-    to ensure that it stays consistent with rotations of the input board
-
-    Args:
-        policy (343 x 1 list): Policies
-
-    Returns:
-        list(policies): List of symmetries
-    """
-    spawn_policy = policy[:49]
-    spread_policy = policy[49:]
-
-    spawn_array = np.array(spawn_policy)
-    spread_array = np.array(spread_policy)
-
-    spawn_array = np.reshape(spawn_array, (7, 7))
-    spread_array = np.reshape(spread_array, (7, 7, 6))
-
-    spawn_symmetries = get_symmetries(spawn_array.tolist())
-    spread_symmetries = get_symmetries(spread_array.tolist())
-
-    output = []
-    for spawn_sym, spread_sym in zip(spawn_symmetries, spread_symmetries):
-        spa = np.array(spawn_sym).flatten().tolist()
-        spr = np.array(spread_sym).flatten().tolist()
-        output.append(spa + spr)
-
-    return output
-
 def create_input(player:PlayerColor, board:'GameBoard'):
     """This function creates input for the neural network
         1. The canonical board (+self, -opponent)
@@ -132,6 +102,36 @@ def greedy_select_from_policy(policy) -> 'SpawnAction|SpreadAction':
 def _reverse_board_sign(board):
     return [[-i for i in row] for row in board]
 
+def get_policy_symmetries(policy):
+    """This function returns the list of symmetries of a policy vector,
+    to ensure that it stays consistent with rotations of the input board
+
+    Args:
+        policy (343 x 1 list): Policies
+
+    Returns:
+        list(policies): List of symmetries
+    """
+    spawn_policy = policy[:49]
+    spread_policy = policy[49:]
+
+    spawn_array = np.array(spawn_policy)
+    spread_array = np.array(spread_policy)
+
+    spawn_array = np.reshape(spawn_array, (7, 7))
+    spread_array = np.reshape(spread_array, (7, 7, 6))
+
+    spawn_symmetries = get_symmetries(spawn_array.tolist())
+    spread_symmetries = get_symmetries(spread_array.tolist())
+
+    output = []
+    for spawn_sym, spread_sym in zip(spawn_symmetries, spread_symmetries):
+        spa = np.array(spawn_sym).flatten().tolist()
+        spr = np.array(spread_sym).flatten().tolist()
+        output.append(spa + spr)
+
+    return np.array(output).reshape((7,343,1))
+    
 def get_symmetries(board):
     """Takes a board list state and generates a list containing the 90 degree, 180 degree
     and 270 degree rotations, as well as the horizontal, vertical, diagonal and anti-diagonal
@@ -144,23 +144,20 @@ def get_symmetries(board):
         list(list(int)): List of board states
     """
     symmetries = []
-    symmetries.append(board)
-
-    brd = np.array(board)
 
     # Add 90 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-1))
+    symmetries.append(np.rot90(board, k=-1))
     # Add 180 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-2))
+    symmetries.append(np.rot90(board, k=-2))
     # Add 270 degree clockwise rotation
-    symmetries.append(np.rot90(brd, k=-3))
+    symmetries.append(np.rot90(board, k=-3))
     # Add horizontal flip
-    symmetries.append(np.fliplr(brd))
+    symmetries.append(np.fliplr(board))
     # Add vertical flip
-    symmetries.append(np.flipud(brd))
+    symmetries.append(np.flipud(board))
     # Add diagonal flip
-    symmetries.append(np.fliplr(np.rot90(brd)))
+    symmetries.append(np.fliplr(np.rot90(board)))
     # Add anti-diagonal flip
-    symmetries.append(np.rot90(np.fliplr(brd)))
+    symmetries.append(np.rot90(np.fliplr(board)))
 
     return symmetries

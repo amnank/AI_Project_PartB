@@ -3,14 +3,20 @@ sys.path.append("game")
 import math
 import random
 import numpy as np
+from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 from agent_network import AgentNetwork        # pylint: disable=import-error
 from alpha_zero_helper import\
-    policy_actions, valid_action_mask, create_input, sample_policy, greedy_select_from_policy   # pylint: disable=import-error
+    policy_actions, valid_action_mask, create_input, sample_policy, greedy_select_from_policy, get_symmetries, get_policy_symmetries   # pylint: disable=import-error
 from infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
-from game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 import time 
 
 
+self_play_args = {
+    'num_iters': 5,
+    'num_train_games': 1,
+    'pit_games': 10,
+    'threshold': 0.55
+}
 
 class Node:
     """
@@ -173,12 +179,6 @@ class MCTS:
         return action_probs
 
 
-self_play_args = {
-    'num_iters': 5,
-    'num_train_games': 30,
-    'pit_games': 10,
-    'threshold': 0.55
-}
 
 class SelfPlay:
     """This class contains the functionality required for the Algorithm to play
@@ -201,7 +201,6 @@ class SelfPlay:
         previous ones
         """
         self.starttime = time.process_time()
-        
         for i in range(self_play_args['num_iters']):
             self.network.network_name = f"Network {i}"
             if should_dump:
@@ -285,6 +284,19 @@ class SelfPlay:
 
         examples_tuples = [tuple(example) for example in examples]
 
+
+        sym_examples = []
+        # Implement symmetries
+        for example in examples:
+            inp_sym_list = np.array([get_symmetries(board) for board in example[0]])
+            inp_sym_list = np.transpose(inp_sym_list, (1, 0, 2, 3))
+            policy_sym_list = get_policy_symmetries(example[1])
+
+            for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
+                sym_examples.append((inp_var, policy_var, example[2]))
+
+        examples_tuples += sym_examples
+
         return examples_tuples
     
     def _pit(self, new_nnet:'AgentNetwork', old_nnet:'AgentNetwork'):
@@ -292,6 +304,7 @@ class SelfPlay:
         new_nnet_won = 0
         old_nnet_won = 0
         total_games = self_play_args['pit_games']
+        frac_win = 0
 
         for i in range(total_games):
             print(f"Head to head, Game {i}")
@@ -342,5 +355,8 @@ class SelfPlay:
                     old_nnet_won += 1 if blue_player == old_mcts else 0
                 print(f"Old won: {old_nnet_won}")
                 print(f"New won: {new_nnet_won}")
+                frac_win = new_nnet_won / total_games
+                if frac_win > self_play_args["threshold"]:
+                    return frac_win
 
         return new_nnet_won / total_games
