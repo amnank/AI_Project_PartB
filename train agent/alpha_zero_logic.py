@@ -175,7 +175,7 @@ class MCTS:
 
 self_play_args = {
     'num_iters': 5,
-    'num_train_games': 50,
+    'num_train_games': 1,
     'pit_games': 10,
     'threshold': 0.55
 }
@@ -305,8 +305,9 @@ class SelfPlay:
 
             curr_mcts = random.choice([new_mcts, old_mcts])
 
-            red_player = curr_mcts
-            blue_player = new_mcts if curr_mcts == old_mcts else old_mcts
+            red_player = random.choice([new_mcts, old_mcts])
+            blue_player = new_mcts if red_player == old_mcts else old_mcts
+            curr_mcts = red_player
 
             while True:
                 # Current player plays an action
@@ -318,22 +319,18 @@ class SelfPlay:
 
                 if game_board.moves_played % 15 == 0:
                     print(f"{game_board.moves_played} moves played")
-                    if new_mcts == red_player:
-                        board = game_board.get_canonical_board(PlayerColor.RED)
-                    else:
-                        board = game_board.get_canonical_board(PlayerColor.BLUE)
-
-                    for r in board:
-                        print(r)
-                    print()
 
                 curr_player = curr_player.opponent
                 curr_mcts = new_mcts if curr_mcts == old_mcts else old_mcts
                 
                 val = infexion_game.get_game_ended(game_board)
                 if val is not None:
+                    old_player = PlayerColor.RED if red_player == old_mcts else PlayerColor.BLUE
+                    new_player = PlayerColor.RED if red_player == new_mcts else PlayerColor.BLUE
+                    print(f"OLD POWER {str(old_player)}: {game_board.count_power(old_player)}")
+                    print(f"NEW POWER {str(new_player)}: {game_board.count_power(old_player)}")
                     winner = val
-                    print(f"Winner: {winner}")
+                    print(f"Winner: {str(winner)}")
                     break
             
             if winner != 0:
