@@ -1,38 +1,50 @@
 import numpy as np
 
 class Node:
-    def __init__(self) -> None:
+    """ A node represents a board state in the game """
+
+    def __init__(self):
+        self.value = eval(self)
+        self.board = None
+        self.children = []
+
+
+
+    def eval(self) -> int:
+        """
+        The evaluation function. 
+        """
+        value = 0
+
+        return value
+
+    # Added so that the function below shows no errors
+    def is_game_ended(self):
         pass
 
-def is_game_ended(node):
-    pass
 
 
 
-
-# TODO: Need to put the nodes children in the best possible order.
+# TODO: Need to put node.children in the best possible order. 
+# tip - moves should be ordered from best to worst for the player whos turn it is 
+#       MAX -> order: [highest val ..... lowest val]
+#       MIN -> ordeR: [lowest val ...... highest val]
 class MiniMaxPruning:
 
     def __init__(self, game):
         self.game = game
-        
-        # TODO: Set this constant
+
+        # TODO: Decide on a depth and set this constant
         self.initial_depth = 0
         self.MAX = np.inf
         self.MIN = -np.inf
 
-    def eval(node) -> int:
-        """
-        The evaluation function. 
-        """
-        pass
-
     
-    def get_best_val(self, node, depth, isMaxPlaying, alpha, beta):
+    def get_best_val(self, node: Node, depth, isMaxPlaying, alpha, beta):
         
         # If node is a leaf node
-        if depth == 0 or is_game_ended(node):
-            return eval(node)
+        if depth == 0 or self.is_game_ended():
+            return node.eval()
         
         # MAX is playing
         if isMaxPlaying:
@@ -53,7 +65,7 @@ class MiniMaxPruning:
         else:
             min_val = self.MAX
 
-            for node in node.children:
+            for child in node.children:
                 eval_value = self.get_best_val(child, depth - 1, True, alpha, beta)
                 min_val = min(min_val, eval_value)
                 beta = min(beta, eval_value)
@@ -68,6 +80,7 @@ class MiniMaxPruning:
     # Wrapper function
     def minimax(self, node, depth):
         self.get_best_val(node, depth, True, self.MIN, self.MAX)
+
 
 
     
