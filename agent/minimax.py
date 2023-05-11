@@ -1,27 +1,52 @@
 import numpy as np
 
+
 class Node:
     """ A node represents a board state in the game """
 
-    def __init__(self):
+    def __init__(self, board_state):
         self.value = eval(self)
-        self.board = None
+        self.board_state = None
+        self.max_player
         self.children = []
-
 
 
     def eval(self) -> int:
         """
         The evaluation function. 
         """
+        #TODO: write eval function here
         value = 0
 
         return value
+
 
     # Added so that the function below shows no errors
     def is_game_ended(self):
         pass
 
+
+    #TODO: import required game functions and fix accrodingly 
+    def generate_successors(self):
+        """This function generates the child states of this node and adds them
+        to a self.children attribute
+        """
+    
+        state = self.board_state
+
+        # Generate the successors for each cell move in the board
+        for cell_position, cell_state in state.items():
+            if not cell_state[0] == self.max_player:
+                continue
+
+            # Generate a node for each spread direction
+            for spread_direction in SPREAD_DIRECTIONS:
+                new_board_state = perform_spread(state, cell_position, spread_direction)
+
+                # Create a new node
+                new_node = Node(new_board_state)
+
+                self.children.append(new_node)
 
 
 
