@@ -12,8 +12,8 @@ import time
 
 
 self_play_args = {
-    'num_iters': 5,
-    'num_train_games': 1,
+    'num_iters': 10,
+    'num_train_games': 50,
     'pit_games': 10,
     'threshold': 0.55
 }
