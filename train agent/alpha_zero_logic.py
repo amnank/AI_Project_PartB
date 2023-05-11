@@ -121,7 +121,7 @@ class Node:
 class MCTS:
     """This class encapsulates the functionality of the Monte Carlo Tree Search
     """
-    def __init__(self, network:'AgentNetwork', sims=25):
+    def __init__(self, network:'AgentNetwork', sims=20):
         self.network = network
         self.sims = sims
 
@@ -175,7 +175,7 @@ class MCTS:
 
 self_play_args = {
     'num_iters': 5,
-    'num_train_games': 1,
+    'num_train_games': 30,
     'pit_games': 10,
     'threshold': 0.55
 }
@@ -328,7 +328,7 @@ class SelfPlay:
                     old_player = PlayerColor.RED if red_player == old_mcts else PlayerColor.BLUE
                     new_player = PlayerColor.RED if red_player == new_mcts else PlayerColor.BLUE
                     print(f"OLD POWER {str(old_player)}: {game_board.count_power(old_player)}")
-                    print(f"NEW POWER {str(new_player)}: {game_board.count_power(old_player)}")
+                    print(f"NEW POWER {str(new_player)}: {game_board.count_power(new_player)}")
                     winner = val
                     print(f"Winner: {str(winner)}")
                     break

@@ -69,11 +69,14 @@ class InfexionGame:
             red_count = game_board.count_power(PlayerColor.RED)
             blue_count = game_board.count_power(PlayerColor.BLUE)
 
-            if red_count > blue_count and (red_count - blue_count > constants.WIN_POWER_DIFF):
+            if red_count > blue_count and (red_count - blue_count >= constants.WIN_POWER_DIFF):
+                print("RED WON")
                 return int(PlayerColor.RED)
-            elif blue_count > red_count and (blue_count - red_count > constants.WIN_POWER_DIFF):
+            elif blue_count > red_count and (blue_count - red_count >= constants.WIN_POWER_DIFF):
+                print("BLUE WON")
                 return int(PlayerColor.BLUE)
             else:
+                print("DRAW")
                 return 0
         
         if game_board.moves_played < 2:
@@ -92,12 +95,15 @@ class InfexionGame:
 
         if (red and not blue):
             # Red win
+            print("RED WON")
             return int(PlayerColor.RED)
         elif (not red and blue):
             # Blue win
+            print("BLUE WON")
             return int(PlayerColor.BLUE)
         elif (not red and not blue):
             # Draw
+            print("DRAW")
             return 0
         else:
             # Game in progress
