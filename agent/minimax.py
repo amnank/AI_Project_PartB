@@ -4,11 +4,17 @@ import numpy as np
 class Node:
     """ A node represents a board state in the game """
 
-    def __init__(self, board_state):
+    def __init__(self, board_state, player):
         self.value = eval(self)
         self.board_state = None
         self.max_player
         self.children = []
+
+        # total powers on the board
+        self.player_power = 0
+        self.opponent_power = 0
+
+        # 
 
 
     def eval(self) -> int:
@@ -19,6 +25,12 @@ class Node:
         value = 0
 
         return value
+    
+    # This is a diluted version of the eval function
+    # for best rdering 
+    def rough_eval(self) -> int:
+
+
 
 
     # Added so that the function below shows no errors
@@ -63,6 +75,9 @@ class MiniMaxPruning:
         self.initial_depth = 0
         self.MAX = np.inf
         self.MIN = -np.inf
+
+        # this is used to store evaluated state values incase they come up again, avoids recalculation
+        self.state_evals = {}
 
     
     def get_best_val(self, node: Node, depth, isMaxPlaying, alpha, beta):
