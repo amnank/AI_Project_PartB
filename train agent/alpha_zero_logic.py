@@ -125,8 +125,13 @@ class MCTS:
             while node.is_fully_expanded():
                 player = node.player_to_move
                 board = node.game_board
+                parent = node
                 node = node.select_child()
-                print(policy_actions[node.action_index], node.prior, infexion_game.is_valid_move(board, player, policy_actions[node.action_index]))
+                ucb = parent._ucb_score(node)
+                print(f"PLAYER TO MOVE: {player}")
+                for r in board.get_canonical_board(PlayerColor.BLUE):
+                    print(r)
+                print(policy_actions[node.action_index], node.prior, ucb, infexion_game.is_valid_move(board, player, policy_actions[node.action_index]))
 
             value = infexion_game.get_game_ended(node.game_board)
             if value == int(node.player_to_move):
@@ -160,13 +165,13 @@ class MCTS:
         return action_probs
 
     def update_tree_self_play(self, last_action:'SpreadAction|SpawnAction'):
-        return
         action_idx = np.where(policy_actions == last_action)[0][0]
 
         for child in self.root.children:
             if child.action_index == action_idx:
-                print(f"Expanding child action: {policy_actions[action_idx]}", child.player_to_move)
+                print(f"Expanding child {policy_actions[child.action_index]},", child.player_to_move)
                 self.root = child
+                self.root.parent = None
                 self.root.expandable_moves = np.array([valid_action_mask(self.root.game_board, self.root.player_to_move)]).T
                 self._expand_root()
                 return
