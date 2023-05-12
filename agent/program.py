@@ -46,7 +46,7 @@ class Agent:
         """
 
         next_policy = self.mcts.search(self._color, self.board)
-        action = sample_policy(next_policy)
+        action = greedy_select_from_policy(next_policy)
         return action
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
