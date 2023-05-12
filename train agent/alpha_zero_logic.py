@@ -13,9 +13,9 @@ import time
 
 self_play_args = {
     'num_iters': 10,
-    'num_train_games': 16,
-    'pit_games': 7,
-    'threshold': 0.62
+    'num_train_games': 1,
+    'pit_games': 10,
+    'threshold': 0.6
 }
 
 class Node:
@@ -274,7 +274,7 @@ class SelfPlay:
         while True:
             improved_policy = mcts.search()
             next_action = sample_policy(improved_policy)
-            action_index = np.where(policy_actions == next_action)[0][0]
+            # action_index = np.where(policy_actions == next_action)[0][0]
             # print(infexion_game.is_valid_move(game_board, curr_player, next_action), next_action, curr_player)
             mcts.update_tree(next_action)
 
@@ -331,8 +331,8 @@ class SelfPlay:
             curr_player = PlayerColor.RED
             winner = None
 
-            new_mcts = MCTS(new_nnet, 15)
-            old_mcts = MCTS(old_nnet, 15)
+            new_mcts = MCTS(new_nnet, 5)
+            old_mcts = MCTS(old_nnet, 5)
 
             red_player = random.choice([new_mcts, old_mcts])
             blue_player = new_mcts if red_player == old_mcts else old_mcts
@@ -388,6 +388,8 @@ class SelfPlay:
             print(f"New won: {new_nnet_won}/{total_games}")
             print(f"Drawn: {draw_count}/{total_games}")
             if frac_win > self_play_args["threshold"]:
+                return frac_win
+            if ((old_nnet_won + draw_count) / total_games) > (1 - self_play_args["threshold"]):
                 return frac_win
 
         return new_nnet_won / total_games
