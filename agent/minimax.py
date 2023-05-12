@@ -4,9 +4,9 @@ import numpy as np
 class Node:
     """ A node represents a board state in the game """
 
-    def __init__(self, board_state, player):
+    def __init__(self, board: Board, player: Pl):
         self.value = eval(self)
-        self.board_state = None
+        self.board = board
         self.max_player
         self.children = []
 
@@ -14,7 +14,7 @@ class Node:
         self.player_power = 0
         self.opponent_power = 0
 
-        # 
+        
 
 
     def eval(self) -> int:

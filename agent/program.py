@@ -4,6 +4,7 @@
 from referee.game import \
     PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir
 
+from minimax import MiniMaxPruning
 
 # This is the entry point for your game playing agent. Currently the agent
 # simply spawns a token at the centre of the board if playing as RED, and
@@ -16,12 +17,14 @@ class Agent:
         """
         Initialise the agent.
         """
+        self.minimax = MiniMaxPruning()
         self._color = color
         match color:
             case PlayerColor.RED:
                 print("Testing: I am playing as red")
             case PlayerColor.BLUE:
                 print("Testing: I am playing as blue")
+
 
     def action(self, **referee: dict) -> Action:
         """
@@ -32,7 +35,9 @@ class Agent:
                 return SpawnAction(HexPos(3, 3))
             case PlayerColor.BLUE:
                 # This is going to be invalid... BLUE never spawned!
-                return SpreadAction(HexPos(3, 3), HexDir.Up)
+                # return SpreadAction(HexPos(3, 3), HexDir.Up)
+                return self.minimax.get_best_val()
+
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
@@ -41,7 +46,7 @@ class Agent:
         match action:
             case SpawnAction(cell):
                 print(f"Testing: {color} SPAWN at {cell}")
-                pass
+                self.minimax.update()
             case SpreadAction(cell, direction):
                 print(f"Testing: {color} SPREAD from {cell}, {direction}")
-                pass
+                self.minimax.update()
