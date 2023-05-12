@@ -13,7 +13,7 @@ import time
 
 self_play_args = {
     'num_iters': 10,
-    'num_train_games': 16,
+    'num_train_games': 1,
     'pit_games': 7,
     'threshold': 0.62
 }
@@ -118,20 +118,11 @@ class MCTS:
         self._expand_root()
 
     def search(self):
-        for i in range(self.sims):
-            print(f"Simulation: {i}")
+        for _ in range(self.sims):
             node = self.root
 
             while node.is_fully_expanded():
-                player = node.player_to_move
-                board = node.game_board
-                parent = node
                 node = node.select_child()
-                ucb = parent._ucb_score(node)
-                print(f"PLAYER TO MOVE: {player}")
-                for r in board.get_canonical_board(PlayerColor.BLUE):
-                    print(r)
-                print(policy_actions[node.action_index], node.prior, ucb, infexion_game.is_valid_move(board, player, policy_actions[node.action_index]))
 
             value = infexion_game.get_game_ended(node.game_board)
             if value == int(node.player_to_move):
@@ -164,12 +155,11 @@ class MCTS:
         action_probs = visit_counts / np.sum(visit_counts)
         return action_probs
 
-    def update_tree_self_play(self, last_action:'SpreadAction|SpawnAction'):
+    def update_tree(self, last_action:'SpreadAction|SpawnAction'):
         action_idx = np.where(policy_actions == last_action)[0][0]
 
         for child in self.root.children:
             if child.action_index == action_idx:
-                print(f"Expanding child {policy_actions[child.action_index]},", child.player_to_move)
                 self.root = child
                 self.root.parent = None
                 self.root.expandable_moves = np.array([valid_action_mask(self.root.game_board, self.root.player_to_move)]).T
@@ -187,16 +177,16 @@ class MCTS:
         i = -1
         for pol in np.nditer(priors, order='F'):
             i += 1
-
+            pol = pol.item()
             if pol == 0:
                 continue
             
             action = policy_actions[i]
             board = GameBoard(self.root.game_board)
-            player = self.root.player_to_move.opponent
 
-            board.handle_valid_action(player, action)
-            self.root.children.append(Node(player, board, pol, i, self.root))
+            board.handle_valid_action(self.root.player_to_move, action)
+            new_player = self.root.player_to_move.opponent
+            self.root.children.append(Node(new_player, board, pol, i, self.root))
 
         self.root.expandable_moves = np.zeros(self.root.expandable_moves.shape)
 
@@ -285,12 +275,13 @@ class SelfPlay:
             improved_policy = mcts.search()
             next_action = sample_policy(improved_policy)
             action_index = np.where(policy_actions == next_action)[0][0]
-            print(infexion_game.is_valid_move(game_board, curr_player, next_action), next_action, curr_player)
-            print(improved_policy[action_index])
-            if infexion_game.is_valid_move(game_board, curr_player, next_action) is False:
-                exit()
-            mcts.update_tree_self_play(next_action)
+            # print(infexion_game.is_valid_move(game_board, curr_player, next_action), next_action, curr_player)
+            mcts.update_tree(next_action)
 
+            if infexion_game.is_valid_move(game_board, curr_player, next_action) is False:
+                for r in game_board.get_canonical_board(PlayerColor.BLUE):
+                    print(r)
+            
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
             if game_board.moves_played % 50 == 0:
@@ -301,7 +292,7 @@ class SelfPlay:
             val = infexion_game.get_game_ended(game_board)
             if val is not None:
                 break
-        
+
         for example in examples:
             if val == 0:
                 example[2] = 0
@@ -354,6 +345,12 @@ class SelfPlay:
                     next_action = sample_policy(next_policy)
                 else:
                     next_action = greedy_select_from_policy(next_policy)
+
+                # print(infexion_game.is_valid_move(game_board, curr_player, next_action), next_action, curr_player)
+                # if infexion_game.is_valid_move(game_board, curr_player, next_action) is False:
+                #     for r in game_board.get_canonical_board(PlayerColor.BLUE):
+                #         print(r)
+
                 curr_mcts.update_tree(next_action)
 
                 # Board and current player's MCTS is updated
