@@ -3,14 +3,20 @@ sys.path.append("game")
 import math
 import random
 import numpy as np
+from referee.game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 from .agent_network import AgentNetwork        # pylint: disable=import-error
 from .alpha_zero_helper import\
-    policy_actions, valid_action_mask, create_input, sample_policy, greedy_select_from_policy   # pylint: disable=import-error
+    policy_actions, valid_action_mask, create_input, sample_policy, greedy_select_from_policy, get_symmetries, get_policy_symmetries   # pylint: disable=import-error
 from .infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
-from referee.game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 import time 
 
 
+self_play_args = {
+    'num_iters': 10,
+    'num_train_games': 16,
+    'pit_games': 7,
+    'threshold': 0.55
+}
 
 class Node:
     """
@@ -121,7 +127,7 @@ class Node:
 class MCTS:
     """This class encapsulates the functionality of the Monte Carlo Tree Search
     """
-    def __init__(self, network:'AgentNetwork', sims=25):
+    def __init__(self, network:'AgentNetwork', sims=20):
         self.network = network
         self.sims = sims
 
@@ -164,21 +170,16 @@ class MCTS:
 
         for child in root.children:
             visit_counts[child.action_index] = child.visit_count
-            if child.value_sum < 0:
-                action_probs[child.action_index] = 0.00000001
-            else:
-                action_probs[child.action_index] = child.value_sum
+            # if child.value_sum < 0:
+            #     action_probs[child.action_index] = 0.00000001
+            # else:
+            #     action_probs[child.action_index] = child.value_sum
 
-        action_probs /= np.sum(visit_counts)
+        # action_probs /= np.sum(visit_counts)
+        action_probs = visit_counts / np.sum(visit_counts)
         return action_probs
 
 
-self_play_args = {
-    'num_iters': 5,
-    'num_train_games': 10,
-    'pit_games': 5,
-    'threshold': 0.55
-}
 
 class SelfPlay:
     """This class contains the functionality required for the Algorithm to play
@@ -201,7 +202,6 @@ class SelfPlay:
         previous ones
         """
         self.starttime = time.process_time()
-        
         for i in range(self_play_args['num_iters']):
             self.network.network_name = f"Network {i}"
             if should_dump:
@@ -268,7 +268,7 @@ class SelfPlay:
 
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
-            if game_board.moves_played % 15 == 0:
+            if game_board.moves_played % 50 == 0:
                 print(f"{game_board.moves_played} moves played")
 
             curr_player = curr_player.opponent
@@ -285,13 +285,28 @@ class SelfPlay:
 
         examples_tuples = [tuple(example) for example in examples]
 
+
+        sym_examples = []
+        # Implement symmetries
+        # for example in examples:
+        #     inp_sym_list = np.array([get_symmetries(board) for board in example[0]])
+        #     inp_sym_list = np.transpose(inp_sym_list, (1, 0, 2, 3))
+        #     policy_sym_list = get_policy_symmetries(example[1])
+
+        #     for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
+        #         sym_examples.append((inp_var, policy_var, example[2]))
+
+        # examples_tuples += sym_examples
+
         return examples_tuples
     
     def _pit(self, new_nnet:'AgentNetwork', old_nnet:'AgentNetwork'):
 
         new_nnet_won = 0
         old_nnet_won = 0
+        draw_count = 0
         total_games = self_play_args['pit_games']
+        frac_win = 0
 
         for i in range(total_games):
             print(f"Head to head, Game {i}")
@@ -303,10 +318,9 @@ class SelfPlay:
             new_mcts = MCTS(new_nnet, 15)
             old_mcts = MCTS(old_nnet, 15)
 
-            curr_mcts = random.choice([new_mcts, old_mcts])
-
-            red_player = curr_mcts
-            blue_player = new_mcts if curr_mcts == old_mcts else old_mcts
+            red_player = random.choice([new_mcts, old_mcts])
+            blue_player = new_mcts if red_player == old_mcts else old_mcts
+            curr_mcts = red_player
 
             while True:
                 # Current player plays an action
@@ -316,27 +330,20 @@ class SelfPlay:
                 # Board and current player's MCTS is updated
                 game_board.handle_valid_action(curr_player, next_action)
 
-                if game_board.moves_played % 15 == 0:
+                if game_board.moves_played % 50 == 0:
                     print(f"{game_board.moves_played} moves played")
-                    if new_mcts == red_player:
-                        board = game_board.get_canonical_board(PlayerColor.RED)
-                    else:
-                        board = game_board.get_canonical_board(PlayerColor.BLUE)
-
-                    for r in board:
-                        print(r)
-                    print()
 
                 curr_player = curr_player.opponent
                 curr_mcts = new_mcts if curr_mcts == old_mcts else old_mcts
                 
                 val = infexion_game.get_game_ended(game_board)
                 if val is not None:
+                    old_player = PlayerColor.RED if red_player == old_mcts else PlayerColor.BLUE
+                    new_player = PlayerColor.RED if red_player == new_mcts else PlayerColor.BLUE
+                    print(f"OLD POWER {str(old_player)}: {game_board.count_power(old_player)}")
+                    print(f"NEW POWER {str(new_player)}: {game_board.count_power(new_player)}")
                     winner = val
-                    board = game_board.get_canonical_board(curr_player)
-                    for r in board:
-                        print(r)
-                    print()
+                    print(f"Winner: {str(winner)}")
                     break
             
             if winner != 0:
@@ -346,5 +353,14 @@ class SelfPlay:
                 else:
                     new_nnet_won += 1 if blue_player == new_mcts else 0
                     old_nnet_won += 1 if blue_player == old_mcts else 0
+                frac_win = new_nnet_won / total_games
+            
+            if (winner == 0):
+                draw_count += 1
+            print(f"Old won: {old_nnet_won}/{total_games}")
+            print(f"New won: {new_nnet_won}/{total_games}")
+            print(f"Drawn won: {draw_count}/{total_games}")
+            if frac_win > self_play_args["threshold"]:
+                return frac_win
 
         return new_nnet_won / total_games

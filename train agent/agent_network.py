@@ -153,7 +153,7 @@ class AgentNetwork:
 
             # Compute the gradient of the output w.r.t total loss
             d_out_policy = -1 * np.divide(improved_policy, predicted_policy) / 343
-            d_out_value = (-2 * (value - predicted_value))
+            d_out_value = -1 * (value - predicted_value)
 
             # Backpropagate the output gradient through the network
             d_shared = self.backward_policy(d_out_policy)

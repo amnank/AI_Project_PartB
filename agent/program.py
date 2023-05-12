@@ -4,7 +4,7 @@ from referee.game import \
     PlayerColor, Action
 from .agent_network import AgentNetwork
 from .alpha_zero_logic import MCTS
-from .alpha_zero_helper import greedy_select_from_policy
+from .alpha_zero_helper import greedy_select_from_policy, sample_policy
 from .infexion_logic import GameBoard
 
 # This is the entry point for your game playing agent. Currently the agent
@@ -24,21 +24,21 @@ class Agent:
                 print("Testing: I am playing as red")
                 hyper_params = {
                     "is_randomized": False,
-                    "load_network": "Network 4",
+                    "load_network": "Network 0",
                     "input_depth": 14
                 }
             case PlayerColor.BLUE:
                 print("Testing: I am playing as blue")
                 hyper_params = {
                     "is_randomized": False,
-                    "load_network": "Network 3",
+                    "load_network": "Network 5",
                     "input_depth": 14
                 }
 
 
         self.board = GameBoard()
         self.network = AgentNetwork(hyper_params, "GameNet1")
-        self.mcts = MCTS(self.network, 10)
+        self.mcts = MCTS(self.network, 15)
 
     def action(self, **referee: dict) -> Action:
         """
@@ -46,7 +46,7 @@ class Agent:
         """
 
         next_policy = self.mcts.search(self._color, self.board)
-        action = greedy_select_from_policy(next_policy)
+        action = sample_policy(next_policy)
         return action
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
