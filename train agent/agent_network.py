@@ -5,7 +5,7 @@ from neuralnet.cnn import Convolutional, Flatten # pylint: disable=import-error
 from neuralnet.nn import Layer, tanH, Sigmoid # pylint: disable=import-error
 from neuralnet.model_IO import save_model, load_model # pylint: disable=import-error
 import numpy as np
-from alpha_zero_helper import normalize_policy
+from alpha_zero_helper import normalize_policy # pylint: disable=import-error
 
 
 class AgentNetwork:
@@ -137,6 +137,7 @@ class AgentNetwork:
     def train(self, training_examples):
         i = 0
         num = len(training_examples)
+        loss_sum = 0
         for state, improved_policy, value in training_examples:
             if i % 50 == 0:
                 print(f"Training example {i}/{num}")
@@ -150,10 +151,10 @@ class AgentNetwork:
             total_loss = self.optimizer.loss_function(predicted_value, value,\
                                                       predicted_policy, improved_policy, self.get_params())
 
-
+            loss_sum += total_loss
             # Compute the gradient of the output w.r.t total loss
             d_out_policy = -1 * np.divide(improved_policy, predicted_policy) / 343
-            d_out_value = -1 * (value - predicted_value)
+            d_out_value = self.optimizer.value_coeff * -1 * (value - predicted_value)
 
             # Backpropagate the output gradient through the network
             d_shared = self.backward_policy(d_out_policy)
@@ -181,10 +182,8 @@ class AgentNetwork:
             
             i += 1
         
-        print(f"TOTAL LOSS: {total_loss}")
+        print(f"AVERAGE LOSS: {loss_sum / len(training_examples)}")
         return self
-
-        
 
     def save_network(self):
         save_model(self)

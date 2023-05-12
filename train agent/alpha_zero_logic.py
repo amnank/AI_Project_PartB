@@ -13,7 +13,7 @@ import time
 
 self_play_args = {
     'num_iters': 10,
-    'num_train_games': 1,
+    'num_train_games': 5,
     'pit_games': 10,
     'threshold': 0.6
 }
@@ -331,8 +331,8 @@ class SelfPlay:
             curr_player = PlayerColor.RED
             winner = None
 
-            new_mcts = MCTS(new_nnet, 5)
-            old_mcts = MCTS(old_nnet, 5)
+            new_mcts = MCTS(new_nnet, 12)
+            old_mcts = MCTS(old_nnet, 12)
 
             red_player = random.choice([new_mcts, old_mcts])
             blue_player = new_mcts if red_player == old_mcts else old_mcts
@@ -387,7 +387,7 @@ class SelfPlay:
             print(f"Old won: {old_nnet_won}/{total_games}")
             print(f"New won: {new_nnet_won}/{total_games}")
             print(f"Drawn: {draw_count}/{total_games}")
-            if frac_win > self_play_args["threshold"]:
+            if frac_win >= self_play_args["threshold"]:
                 return frac_win
             if ((old_nnet_won + draw_count) / total_games) > (1 - self_play_args["threshold"]):
                 return frac_win

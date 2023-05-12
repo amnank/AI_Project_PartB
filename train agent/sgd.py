@@ -3,9 +3,10 @@ import numpy as np
 
 class StochasticGradientDescent:
 
-    def __init__(self, l2_lambda=0.0001, learning_rate=0.001):
+    def __init__(self, l2_lambda=0.00001, learning_rate=0.001):
         self.learning_rate = learning_rate
         self.l2_lambda = l2_lambda
+        self.value_coeff = 1
         # self.c=1e-3
         self.reg_term = 0
     
@@ -34,7 +35,11 @@ class StochasticGradientDescent:
         value_loss = 0.5 * ((true_value - pred_value) ** 2)
         policy_loss = -np.matmul(true_search_policy.T, np.log(pred_policy)).item()
 
+
         self.reg_term = self.l2_lambda * np.sum(params**2)
-        loss = value_loss + policy_loss + self.reg_term
+        loss = (self.value_coeff * value_loss) + policy_loss + self.reg_term
+        # print(f"VALUE LOSS: {self.value_coeff * value_loss}")
+        # print(f"POLICY LOSS: {policy_loss}")
+        # print(f"REG LOSS: {self.reg_term}")
 
         return loss

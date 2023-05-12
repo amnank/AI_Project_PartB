@@ -4,7 +4,7 @@ from referee.game import \
     PlayerColor, Action
 from .agent_network import AgentNetwork
 from .alpha_zero_logic import MCTS
-from .alpha_zero_helper import greedy_select_from_policy, sample_policy
+from .alpha_zero_helper import greedy_select_from_policy, sample_policy, create_input
 from .infexion_logic import GameBoard
 
 # This is the entry point for your game playing agent. Currently the agent
@@ -24,14 +24,14 @@ class Agent:
                 print("Testing: I am playing as red")
                 hyper_params = {
                     "is_randomized": False,
-                    "load_network": "Network 0",
+                    "load_network": "Network 1",
                     "input_depth": 14
                 }
             case PlayerColor.BLUE:
                 print("Testing: I am playing as blue")
                 hyper_params = {
                     "is_randomized": False,
-                    "load_network": "Network 5",
+                    "load_network": "Network 0",
                     "input_depth": 14
                 }
 
@@ -45,14 +45,19 @@ class Agent:
         Return the next action to take.
         """
 
-        next_policy = self.mcts.search(self._color, self.board)
-        action = greedy_select_from_policy(next_policy)
+        next_policy = self.mcts.search()
+        value = self.network.get_value(create_input(self._color, self.board))
+        print(f"Value: {value}")
+        if self.board.moves_played <= 30:
+            action = sample_policy(next_policy)
+        else:
+            action = greedy_select_from_policy(next_policy)
         return action
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
         Update the agent with the last player's action.
         """
-
+        self.mcts.update_tree(action)
         self.board.handle_valid_action(color, action)
         

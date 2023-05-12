@@ -13,9 +13,9 @@ import time
 
 self_play_args = {
     'num_iters': 10,
-    'num_train_games': 16,
-    'pit_games': 7,
-    'threshold': 0.55
+    'num_train_games': 10,
+    'pit_games': 10,
+    'threshold': 0.6
 }
 
 class Node:
@@ -98,23 +98,6 @@ class Node:
 
         board.handle_valid_action(player, action)
         self.children.append(Node(player, board, pol, action_idx, self))   
-
-    def expand_root(self, priors):
-
-        i = -1
-        for pol in np.nditer(priors, order='F'):
-            i += 1
-            if pol == 0:
-                continue
-            
-            action = policy_actions[i]
-            board = GameBoard(self.game_board)
-            player = self.player_to_move.opponent
-
-            board.handle_valid_action(player, action)
-            self.children.append(Node(player, board, pol, i, self))
-
-        self.expandable_moves = np.zeros(self.expandable_moves.shape)
     
     def backpropagate(self, value):
         self.value_sum += value
@@ -131,18 +114,12 @@ class MCTS:
         self.network = network
         self.sims = sims
 
-    def search(self, player:'PlayerColor', game_board:'GameBoard'):
-        root = Node(player, game_board)
+        self.root = Node(PlayerColor.RED, GameBoard())
+        self._expand_root()
 
-        state = create_input(root.player_to_move, root.game_board)
-        value = self.network.get_value(state)
-        policy = self.network.get_policy(state)
-
-        policy = np.multiply(policy, root.expandable_moves)
-        root.expand_root(policy)
-
+    def search(self):
         for _ in range(self.sims):
-            node = root
+            node = self.root
 
             while node.is_fully_expanded():
                 node = node.select_child()
@@ -160,7 +137,6 @@ class MCTS:
 
                 policy = np.multiply(policy, node.expandable_moves)
                 node.expand(policy)
-                
 
             node.backpropagate(value)
 
@@ -168,7 +144,7 @@ class MCTS:
         visit_counts = np.zeros(action_space_shape)
         action_probs = np.zeros(action_space_shape)
 
-        for child in root.children:
+        for child in self.root.children:
             visit_counts[child.action_index] = child.visit_count
             # if child.value_sum < 0:
             #     action_probs[child.action_index] = 0.00000001
@@ -179,7 +155,40 @@ class MCTS:
         action_probs = visit_counts / np.sum(visit_counts)
         return action_probs
 
+    def update_tree(self, last_action:'SpreadAction|SpawnAction'):
+        action_idx = np.where(policy_actions == last_action)[0][0]
 
+        for child in self.root.children:
+            if child.action_index == action_idx:
+                self.root = child
+                self.root.parent = None
+                self.root.expandable_moves = np.array([valid_action_mask(self.root.game_board, self.root.player_to_move)]).T
+                self._expand_root()
+                return
+        raise ValueError("Root does not have child trying to be updated")
+
+    def _expand_root(self):
+        state = create_input(self.root.player_to_move, self.root.game_board)
+        priors = self.network.get_policy(state)
+        self.root.children = []
+
+        priors = np.multiply(priors, self.root.expandable_moves)
+
+        i = -1
+        for pol in np.nditer(priors, order='F'):
+            i += 1
+            pol = pol.item()
+            if pol == 0:
+                continue
+            
+            action = policy_actions[i]
+            board = GameBoard(self.root.game_board)
+
+            board.handle_valid_action(self.root.player_to_move, action)
+            new_player = self.root.player_to_move.opponent
+            self.root.children.append(Node(new_player, board, pol, i, self.root))
+
+        self.root.expandable_moves = np.zeros(self.root.expandable_moves.shape)
 
 class SelfPlay:
     """This class contains the functionality required for the Algorithm to play
@@ -263,9 +272,16 @@ class SelfPlay:
         curr_player = PlayerColor.RED
 
         while True:
-            improved_policy = mcts.search(curr_player, game_board)
+            improved_policy = mcts.search()
             next_action = sample_policy(improved_policy)
+            # action_index = np.where(policy_actions == next_action)[0][0]
+            # print(infexion_game.is_valid_move(game_board, curr_player, next_action), next_action, curr_player)
+            mcts.update_tree(next_action)
 
+            if infexion_game.is_valid_move(game_board, curr_player, next_action) is False:
+                for r in game_board.get_canonical_board(PlayerColor.BLUE):
+                    print(r)
+            
             examples.append([create_input(curr_player, game_board), improved_policy, curr_player])
             game_board.handle_valid_action(curr_player, next_action)
             if game_board.moves_played % 50 == 0:
@@ -276,7 +292,7 @@ class SelfPlay:
             val = infexion_game.get_game_ended(game_board)
             if val is not None:
                 break
-        
+
         for example in examples:
             if val == 0:
                 example[2] = 0
@@ -286,7 +302,7 @@ class SelfPlay:
         examples_tuples = [tuple(example) for example in examples]
 
 
-        sym_examples = []
+        # sym_examples = []
         # Implement symmetries
         # for example in examples:
         #     inp_sym_list = np.array([get_symmetries(board) for board in example[0]])
@@ -297,7 +313,7 @@ class SelfPlay:
         #         sym_examples.append((inp_var, policy_var, example[2]))
 
         # examples_tuples += sym_examples
-
+        print(f"Moves played: {game_board.moves_played}")
         return examples_tuples
     
     def _pit(self, new_nnet:'AgentNetwork', old_nnet:'AgentNetwork'):
@@ -315,8 +331,8 @@ class SelfPlay:
             curr_player = PlayerColor.RED
             winner = None
 
-            new_mcts = MCTS(new_nnet, 15)
-            old_mcts = MCTS(old_nnet, 15)
+            new_mcts = MCTS(new_nnet, 5)
+            old_mcts = MCTS(old_nnet, 5)
 
             red_player = random.choice([new_mcts, old_mcts])
             blue_player = new_mcts if red_player == old_mcts else old_mcts
@@ -324,8 +340,18 @@ class SelfPlay:
 
             while True:
                 # Current player plays an action
-                next_policy = curr_mcts.search(curr_player, game_board)
-                next_action = greedy_select_from_policy(next_policy)
+                next_policy = curr_mcts.search()
+                if game_board.moves_played <= 30:
+                    next_action = sample_policy(next_policy)
+                else:
+                    next_action = greedy_select_from_policy(next_policy)
+
+                # print(infexion_game.is_valid_move(game_board, curr_player, next_action), next_action, curr_player)
+                # if infexion_game.is_valid_move(game_board, curr_player, next_action) is False:
+                #     for r in game_board.get_canonical_board(PlayerColor.BLUE):
+                #         print(r)
+
+                curr_mcts.update_tree(next_action)
 
                 # Board and current player's MCTS is updated
                 game_board.handle_valid_action(curr_player, next_action)
@@ -335,6 +361,7 @@ class SelfPlay:
 
                 curr_player = curr_player.opponent
                 curr_mcts = new_mcts if curr_mcts == old_mcts else old_mcts
+                curr_mcts.update_tree(next_action)
                 
                 val = infexion_game.get_game_ended(game_board)
                 if val is not None:
@@ -359,8 +386,10 @@ class SelfPlay:
                 draw_count += 1
             print(f"Old won: {old_nnet_won}/{total_games}")
             print(f"New won: {new_nnet_won}/{total_games}")
-            print(f"Drawn won: {draw_count}/{total_games}")
+            print(f"Drawn: {draw_count}/{total_games}")
             if frac_win > self_play_args["threshold"]:
+                return frac_win
+            if ((old_nnet_won + draw_count) / total_games) > (1 - self_play_args["threshold"]):
                 return frac_win
 
         return new_nnet_won / total_games
