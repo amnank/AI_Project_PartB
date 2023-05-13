@@ -130,7 +130,7 @@ def get_policy_symmetries(policy):
         spr = np.array(spread_sym).flatten().tolist()
         output.append(spa + spr)
 
-    return np.array(output).reshape((7,343,1))
+    return np.array(output).reshape((3,343,1))
     
 def get_symmetries(board):
     """Takes a board list state and generates a list containing the 90 degree, 180 degree
@@ -152,12 +152,12 @@ def get_symmetries(board):
     # Add 270 degree clockwise rotation
     symmetries.append(np.rot90(board, k=-3))
     # Add horizontal flip
-    symmetries.append(np.fliplr(board))
-    # Add vertical flip
-    symmetries.append(np.flipud(board))
-    # Add diagonal flip
-    symmetries.append(np.fliplr(np.rot90(board)))
-    # Add anti-diagonal flip
-    symmetries.append(np.rot90(np.fliplr(board)))
+    # symmetries.append(np.fliplr(board))
+    # # Add vertical flip
+    # symmetries.append(np.flipud(board))
+    # # Add diagonal flip
+    # symmetries.append(np.fliplr(np.rot90(board)))
+    # # Add anti-diagonal flip
+    # symmetries.append(np.rot90(np.fliplr(board)))
 
     return symmetries

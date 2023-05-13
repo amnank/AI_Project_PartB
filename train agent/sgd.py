@@ -52,8 +52,10 @@ class Adam:
         self.beta2 = 0.999
         self.epsilon = 1e-8
         self.timestep = 0
-        self.l2_lambda = 0.0001
+        self.l2_lambda = 1e-6
         self.reg_term = 0
+
+        self.value_coeff = 1
 
         self.m = None   # first moment
         self.v = None   # second moment
@@ -111,11 +113,15 @@ class Adam:
 
         true_search_policy = np.array(true_search_policy)
 
-        value_loss = 0.5 * ((true_value - pred_value) ** 2)
+        value_loss = self.value_coeff * 0.5 * ((true_value - pred_value) ** 2)
         policy_loss = -np.matmul(true_search_policy.T, np.log(pred_policy)).item()
 
         self.reg_term = self.l2_lambda * np.sum(params**2)
         loss = value_loss + policy_loss + self.reg_term
+
+        # print(f"VALUE LOSS: {self.value_coeff * value_loss}")
+        # print(f"POLICY LOSS: {policy_loss}")
+        # print(f"REG LOSS: {self.reg_term}")
 
         return loss
 

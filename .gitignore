@@ -130,6 +130,7 @@ dmypy.json
 
 # Neural network outputs
 Network*/
+Network * - SGD/
 
 # Debugging text files
 agent/*.txt
