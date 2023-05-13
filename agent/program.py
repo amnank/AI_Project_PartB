@@ -24,14 +24,14 @@ class Agent:
                 print("Testing: I am playing as red")
                 hyper_params = {
                     "is_randomized": False,
-                    "load_network": "Network 1 - Adam",
+                    "load_network": "Network 1 - New Adam",
                     "input_depth": 14
                 }
             case PlayerColor.BLUE:
                 print("Testing: I am playing as blue")
                 hyper_params = {
                     "is_randomized": False,
-                    "load_network": "Network 1 - SGD",
+                    "load_network": "Network 1 - Adam",
                     "input_depth": 14
                 }
 
@@ -44,18 +44,18 @@ class Agent:
         """
         Return the next action to take.
         """
-        temp = 1
+        temp = 0.2
         next_policy = self.mcts.search(temp=temp)
         value = self.network.get_value(create_input(self._color, self.board))
         print(f"Value: {value}")
-        if self.board.moves_played <= 30:
-            temp = 1
-        elif self.board.moves_played > 30 and self.board.moves_played <= 100:
-            temp = 0.5
-        elif self.board.moves_played > 100 and self.board.moves_played <= 200:
-            temp = 0.2
-        else:
-            temp = 1e-5
+        # if self.board.moves_played <= 30:
+        #     temp = 0.01
+        # elif self.board.moves_played > 30 and self.board.moves_played <= 100:
+        #     temp = 0.5
+        # elif self.board.moves_played > 100 and self.board.moves_played <= 200:
+        #     temp = 0.2
+        # else:
+        #     temp = 1e-5
 
         action = sample_policy(next_policy)
         return action
