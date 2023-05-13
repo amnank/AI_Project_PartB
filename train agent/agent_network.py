@@ -1,6 +1,6 @@
 import sys
 sys.path.append("neuralnet")
-from sgd import StochasticGradientDescent # pylint: disable=import-error
+from sgd import StochasticGradientDescent, Adam # pylint: disable=import-error
 from neuralnet.cnn import Convolutional, Flatten # pylint: disable=import-error
 from neuralnet.nn import Layer, tanH, Sigmoid # pylint: disable=import-error
 from neuralnet.model_IO import save_model, load_model # pylint: disable=import-error
@@ -17,7 +17,8 @@ class AgentNetwork:
     def __init__(self, hyper_params, network_name):
         self.network_name = network_name
         self.input_depth = hyper_params["input_depth"]
-        self.optimizer = StochasticGradientDescent()
+        #self.optimizer = StochasticGradientDescent()
+        self.optimizer = Adam()
         
         # Create network
         self.shared = [
@@ -170,8 +171,8 @@ class AgentNetwork:
 
                 weights, biases = params
                 d_weights, d_biases = layer.get_grads()
-
-                weights = self.optimizer.update_params(weights, d_weights)
+   
+                weights = self.optimizer.update_params(weights, d_weights) # this works fine
                 biases = self.optimizer.update_params(biases, d_biases)
 
                 layer.set_params(weights, biases)
