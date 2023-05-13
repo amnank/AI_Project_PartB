@@ -1,13 +1,14 @@
 import sys
 sys.path.append("game")
 from game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
+from minimax import Node
 
 class InfexionGame:
     """The class encapsulates the logic of the Infexion game
     """
     
     def get_valid_moves(self, game_board:'GameBoard', player:'PlayerColor'):
-        """Generates a list of valid action from this board state
+        """Generates a list of successors from this board state
 
         Args:
             player (PlayerColor): The phasing player
@@ -17,22 +18,47 @@ class InfexionGame:
         """
         actions = []
         total_power = game_board.count_total_power()
-        for rizz in range(constants.BOARD_N):
+
+        for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
-                cell = game_board[rizz][q]
+                cell = game_board[r][q]
+
                 if cell.player is None:
                     if (total_power < constants.MAX_TOTAL_POWER):
-                        actions.append(SpawnAction(HexPos(rizz,q)))
+                        new_game_board = GameBoard(game_board)
+                        new_game_board.handle_valid_action(SpawnAction(HexPos(r,q)))
+                        actions.append(Node(new_game_board, player))
+
                 elif cell.player == player:
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.Down))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.DownLeft))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.DownRight))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.Up))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.UpLeft))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.UpRight))
+                    new_game_board = GameBoard(game_board)
+                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.Down))
+                    actions.insert(0, Node(new_game_board, player))
+                    
+                    new_game_board = GameBoard(game_board)
+                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.DownLeft))
+                    actions.insert(0, Node(new_game_board, player))
+
+                    new_game_board = GameBoard(game_board)
+                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.DownRight))
+                    actions.insert(0, Node(new_game_board, player) )
+
+                    new_game_board = GameBoard(game_board)
+                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.Up))
+                    actions.insert(0, Node(new_game_board, player))
+
+                    new_game_board = GameBoard(game_board)
+                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.UpLeft))
+                    actions.insert(0, Node(new_game_board, player))
+
+                    new_game_board = GameBoard(game_board)
+                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.UpRight))
+                    actions.insert(0, Node(new_game_board, player))
         
+        for action in actions:
+            print(action)
         return actions
     
+
     def is_valid_move(self, game_board:'GameBoard', player, action) -> bool:
         """Returns whether an action made by a player is valid or not
 
@@ -132,6 +158,7 @@ class GameBoard:
                     col.append(Cell(cell.player, cell.power))
                 self.total_board.append(col)
 
+
     def handle_valid_action(self, player, action):
         """Handles the effects of a valid action on the board
 
@@ -150,6 +177,7 @@ class GameBoard:
     def _handle_spawn(self, player, spawn_action:'SpawnAction'):
         self.total_board[spawn_action.cell.r][spawn_action.cell.q] = Cell(player, 1)
 
+
     def _handle_spread(self, player, spread_action:'SpreadAction'):
         spread_cell_power = self.total_board[spread_action.cell.r][spread_action.cell.q].power
         spread_direction = spread_action.direction
@@ -161,6 +189,7 @@ class GameBoard:
         
         self.total_board[spread_action.cell.r][spread_action.cell.q] = Cell(None, 0)
         
+
     def get_canonical_board(self, player:PlayerColor):
         """Returns the board with player cells having +ve power,
         and opponent cells having -ve power
