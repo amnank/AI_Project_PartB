@@ -1,63 +1,11 @@
 import sys
 sys.path.append("game")
 from game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
-from minimax import Node
+from minimax import Node # pylint: disable=import-error
 
 class InfexionGame:
     """The class encapsulates the logic of the Infexion game
     """
-    
-    def get_valid_moves(self, game_board:'GameBoard', player:'PlayerColor'):
-        """Generates a list of successors from this board state
-
-        Args:
-            player (PlayerColor): The phasing player
-
-        Returns:
-            [actions]: Valid actions
-        """
-        actions = []
-        total_power = game_board.count_total_power()
-
-        for r in range(constants.BOARD_N):
-            for q in range(constants.BOARD_N):
-                cell = game_board[r][q]
-
-                if cell.player is None:
-                    if (total_power < constants.MAX_TOTAL_POWER):
-                        new_game_board = GameBoard(game_board)
-                        new_game_board.handle_valid_action(SpawnAction(HexPos(r,q)))
-                        actions.append(Node(new_game_board, player))
-
-                elif cell.player == player:
-                    new_game_board = GameBoard(game_board)
-                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.Down))
-                    actions.insert(0, Node(new_game_board, player))
-                    
-                    new_game_board = GameBoard(game_board)
-                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.DownLeft))
-                    actions.insert(0, Node(new_game_board, player))
-
-                    new_game_board = GameBoard(game_board)
-                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.DownRight))
-                    actions.insert(0, Node(new_game_board, player) )
-
-                    new_game_board = GameBoard(game_board)
-                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.Up))
-                    actions.insert(0, Node(new_game_board, player))
-
-                    new_game_board = GameBoard(game_board)
-                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.UpLeft))
-                    actions.insert(0, Node(new_game_board, player))
-
-                    new_game_board = GameBoard(game_board)
-                    new_game_board.handle_valid_action(SpreadAction(HexPos(r,q), HexDir.UpRight))
-                    actions.insert(0, Node(new_game_board, player))
-        
-        for action in actions:
-            print(action)
-        return actions
-    
 
     def is_valid_move(self, game_board:'GameBoard', player, action) -> bool:
         """Returns whether an action made by a player is valid or not
