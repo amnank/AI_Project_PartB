@@ -17,7 +17,7 @@ class Agent:
         """
         Initialise the agent.
         """
-        self.minimax = MiniMaxPruning()
+        self.agent = MiniMaxPruning()
         self._color = color
         match color:
             case PlayerColor.RED:
@@ -36,7 +36,7 @@ class Agent:
             case PlayerColor.BLUE:
                 # This is going to be invalid... BLUE never spawned!
                 # return SpreadAction(HexPos(3, 3), HexDir.Up)
-                return self.minimax.get_best_val()
+                return self.agent.minimax()
 
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
