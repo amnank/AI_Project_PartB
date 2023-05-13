@@ -3,8 +3,8 @@
 
 from referee.game import \
     PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir
-
-from minimax import MiniMaxPruning
+from .infexion_logic import GameBoard
+from .minimax import MiniMaxPruning
 
 # This is the entry point for your game playing agent. Currently the agent
 # simply spawns a token at the centre of the board if playing as RED, and
@@ -24,29 +24,19 @@ class Agent:
                 print("Testing: I am playing as red")
             case PlayerColor.BLUE:
                 print("Testing: I am playing as blue")
+        self.board = GameBoard()
 
 
     def action(self, **referee: dict) -> Action:
         """
         Return the next action to take.
         """
-        match self._color:
-            case PlayerColor.RED:
-                return SpawnAction(HexPos(3, 3))
-            case PlayerColor.BLUE:
-                # This is going to be invalid... BLUE never spawned!
-                # return SpreadAction(HexPos(3, 3), HexDir.Up)
-                return self.agent.minimax()
+        
+        return self.agent.run_minimax(self._color, self.board)
 
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
         Update the agent with the last player's action.
         """
-        match action:
-            case SpawnAction(cell):
-                print(f"Testing: {color} SPAWN at {cell}")
-                self.minimax.update()
-            case SpreadAction(cell, direction):
-                print(f"Testing: {color} SPREAD from {cell}, {direction}")
-                self.minimax.update()
+        self.board.handle_valid_action(color, action)

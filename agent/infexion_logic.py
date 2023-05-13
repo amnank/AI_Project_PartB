@@ -1,7 +1,4 @@
-import sys
-sys.path.append("game")
-from game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
-from minimax import Node # pylint: disable=import-error
+from referee.game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
 
 class InfexionGame:
     """The class encapsulates the logic of the Infexion game

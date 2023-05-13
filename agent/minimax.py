@@ -1,5 +1,5 @@
 import numpy as np
-from infexion_logic import InfexionGame, GameBoard # pylint: disable=import-error
+from .infexion_logic import InfexionGame, GameBoard # pylint: disable=import-error
 from referee.game import PlayerColor, constants, SpawnAction, SpreadAction, HexPos, HexDir
 
 game = InfexionGame()
@@ -7,14 +7,14 @@ game = InfexionGame()
 class Node:
     """ A node represents a board state in the game """
 
-    def __init__(self, board: 'GameBoard', player: PlayerColor, height):
-        self.value = self.eval()
+    def __init__(self, board: 'GameBoard', player: PlayerColor, height, action:'SpreadAction|SpawnAction'=None):
         self.board = board
         self.player = player
-        self.children = game.get_valid_moves(board, player)
-
+        self.action = action
         # The height is the distance from the leaf_node
         self.height = height
+        self.value = self.eval()
+        self.children = self.get_valid_moves(board, player)
 
 
     def eval(self) -> int:
@@ -46,100 +46,103 @@ class Node:
         Returns:
             [actions]: Valid actions
         """
+        if self.height == 0:
+            return
+
         actions = []
         total_power = game_board.count_total_power()
 
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
-                cell = game_board[r][q]
+                cell = game_board.total_board[r][q]
 
                 if cell.player is None:
                     if (total_power < constants.MAX_TOTAL_POWER):
                         new_game_board = GameBoard(game_board)
                         new_game_board.handle_valid_action(player, SpawnAction(HexPos(r,q)))
-                        actions.append(Node(new_game_board, player, self.height - 1))
+                        actions.append(Node(new_game_board, player, self.height - 1, SpawnAction(HexPos(r,q))))
 
                 elif cell.player == player:
                     new_game_board = GameBoard(game_board)
                     new_game_board.handle_valid_action(player, SpreadAction(HexPos(r,q), HexDir.Down))
-                    actions.insert(0, Node(new_game_board, player, self.height - 1))
+                    actions.insert(0, Node(new_game_board, player, self.height - 1, SpreadAction(HexPos(r,q), HexDir.Down)))
                     
                     new_game_board = GameBoard(game_board)
                     new_game_board.handle_valid_action(player, SpreadAction(HexPos(r,q), HexDir.DownLeft))
-                    actions.insert(0, Node(new_game_board, player, self.height - 1))
+                    actions.insert(0, Node(new_game_board, player, self.height - 1,SpreadAction(HexPos(r,q), HexDir.DownLeft)))
 
                     new_game_board = GameBoard(game_board)
                     new_game_board.handle_valid_action(player, SpreadAction(HexPos(r,q), HexDir.DownRight))
-                    actions.insert(0, Node(new_game_board, player, self.height - 1) )
+                    actions.insert(0, Node(new_game_board, player, self.height - 1, SpreadAction(HexPos(r,q), HexDir.DownRight)) )
 
                     new_game_board = GameBoard(game_board)
                     new_game_board.handle_valid_action(player, SpreadAction(HexPos(r,q), HexDir.Up))
-                    actions.insert(0, Node(new_game_board, player, self.height - 1))
+                    actions.insert(0, Node(new_game_board, player, self.height - 1, SpreadAction(HexPos(r,q), HexDir.Up)))
 
                     new_game_board = GameBoard(game_board)
                     new_game_board.handle_valid_action(player, SpreadAction(HexPos(r,q), HexDir.UpLeft))
-                    actions.insert(0, Node(new_game_board, player, self.height - 1))
+                    actions.insert(0, Node(new_game_board, player, self.height - 1, SpreadAction(HexPos(r,q), HexDir.UpLeft)))
 
                     new_game_board = GameBoard(game_board)
                     new_game_board.handle_valid_action(player, SpreadAction(HexPos(r,q), HexDir.UpRight))
-                    actions.insert(0, Node(new_game_board, player, self.height - 1))
+                    actions.insert(0, Node(new_game_board, player, self.height - 1, SpreadAction(HexPos(r,q), HexDir.UpRight)))
 
         return actions
 
 class MiniMaxPruning:
 
     def __init__(self):
-        self.game = game
-        self.player = PlayerColor.RED
-
-        self.initial_height = 20
+        self.initial_height = 2
         self.max_val = np.inf
         self.min_val = -np.inf
-
-        self.root = Node(GameBoard(), self.player, self.initial_height)
 
         # this is used to store evaluated state values incase they come up again, avoids recalculation
         # self.state_evals = {}
 
-    def run_minimax(self):
-        self.get_best_val(self.root, self.player, alpha=self.min_val, beta=self.max_val)
+    def run_minimax(self, player:'PlayerColor', board:'GameBoard') -> 'SpreadAction|SpawnAction':
+        root = Node(board, player, self.initial_height)
+        _, action = self.get_best_val(root, player, alpha=self.min_val, beta=self.max_val)
+        return action
     
     def get_best_val(self, node: 'Node', player:'PlayerColor', alpha, beta):
         
         # If node is a leaf node
         if node.height == 0 or game.get_game_ended(node.board) is not None:
-            return node.eval()
+            return node.eval(), node.action
         
         children = node.order_children(player)
         # MAX is playing
         if player == PlayerColor.RED:
             max_val = self.min_val
+            best_action = None
 
             for child in node.children:
-                eval_value = self.get_best_val(child, player.opponent, alpha, beta)
-                max_val = max(max_val, eval_value)
+                eval_value, _ = self.get_best_val(child, player.opponent, alpha, beta)
+                if eval_value > max_val:
+                    max_val = eval_value
+                    best_action = child.action
                 alpha = max(alpha, eval_value)
-
                 # pruning
                 if beta <= alpha:
                     break
-            
-
-            return max_val
+            return max_val, best_action
 
         # MIN is playing
         else:
             min_val = self.max_val
+            best_action = None
 
             for child in children:
-                eval_value = self.get_best_val(child, player.opponent, alpha, beta)
-                min_val = min(min_val, eval_value)
-                beta = min(beta, eval_value)
+                eval_value, _ = self.get_best_val(child, player.opponent, alpha, beta)
+                if eval_value < min_val:
+                    min_val = eval_value
+                    best_action = child.action
 
+                beta = min(beta, eval_value)
                 # pruning
                 if beta <= alpha:
                     break
     
-            return min_val
+            return min_val, best_action
 
     
