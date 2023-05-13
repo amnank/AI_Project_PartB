@@ -26,16 +26,19 @@ class Node:
 
         return value
     
+
     # This is a diluted version of the eval function
     # for best rdering 
-    def rough_eval(self) -> int:
-
-
+    def ordering(self) -> int:
+        # give children in good order
+        
 
 
     # Added so that the function below shows no errors
     def is_game_ended(self):
         pass
+
+    
 
 
     #TODO: import required game functions and fix accrodingly 
