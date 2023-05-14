@@ -31,16 +31,11 @@ class Node:
         game_end = get_game_ended(self.board)
         if game_end is not None:
             return game_end * np.inf
-
-        # self.board.get_cells_under_attack(PlayerColor.RED)
-        red_value = self.board.count_power(PlayerColor.RED) + self.board.count_cells(PlayerColor.RED)
-        blue_value = self.board.count_power(PlayerColor.BLUE) + self.board.count_cells(PlayerColor.BLUE)
+        
+        red_value = 10 * self.board.count_power(PlayerColor.RED) + self.board.count_cells(PlayerColor.RED)
+        blue_value = 10 * self.board.count_power(PlayerColor.BLUE) + self.board.count_cells(PlayerColor.BLUE)
 
         return red_value - blue_value
-
-# tip - moves should be ordered from best to worst for the player whos turn it is 
-#       MAX -> order: [highest val ..... lowest val]
-#       MIN -> ordeR: [lowest val ...... highest val]
 
     def get_valid_moves(self, game_board:'GameBoard', player:'PlayerColor'):
         """Generates a list of successors from this board state
@@ -105,13 +100,10 @@ class MiniMaxPruning:
     
         # MAX is playing
         if player == PlayerColor.RED:
-            # print("MAX IS PLAYING")
             max_val = self.min_val
             best_action = None
-            # print(node.children)
 
             for action in node.children:
-                # print(child.action)
                 board = GameBoard(node.board)
                 board.handle_valid_action(player, actions_list[action])
                 board.moves_played = node.board.moves_played + 1
@@ -128,24 +120,23 @@ class MiniMaxPruning:
                 alpha = max(alpha, eval_value)
                 # pruning
                 if beta <= alpha:
-                    # print("PRUNED")
                     break
                 
             return max_val, actions_list[best_action]
 
         # MIN is playing
         else:
-            # print("MIN IS PLAYING")
             min_val = self.max_val
             best_action = None
 
             for action in node.children:
-                # print(child.action)
                 board = GameBoard(node.board)
                 board.handle_valid_action(player, actions_list[action])
                 board.moves_played = node.board.moves_played + 1
                 child = Node(board, player.opponent, node.height - 1, action)
+
                 eval_value, _ = self.get_best_val(child, player.opponent, alpha, beta)
+
                 if eval_value < min_val:
                     min_val = eval_value
                     best_action = child.action
@@ -156,7 +147,6 @@ class MiniMaxPruning:
                 beta = min(beta, eval_value)
                 # pruning
                 if beta <= alpha:
-                    # print("PRUNED")
                     break
     
             return min_val, actions_list[best_action]

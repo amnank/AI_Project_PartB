@@ -1,6 +1,11 @@
 from referee.game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
 
-spread_dirs = [HexDir.Down, HexDir.DownLeft, HexDir.DownRight, HexDir.Up, HexDir.UpLeft, HexDir.UpRight]
+spread_dirs = [HexDir.Down,
+               HexDir.DownLeft,
+               HexDir.DownRight,
+               HexDir.Up,
+               HexDir.UpLeft,
+               HexDir.UpRight]
 
 def get_game_ended(game_board:'GameBoard') -> 'int|None':
     """Returns the final value of the game (+1, 0, -1) if ended, else None
@@ -19,7 +24,6 @@ def get_game_ended(game_board:'GameBoard') -> 'int|None':
             # print("BLUE WON")
             return int(PlayerColor.BLUE)
         else:
-            # print("DRAW")
             return 0
     
     if game_board.moves_played < 2:
@@ -96,11 +100,19 @@ class GameBoard:
 
         for _ in range(spread_cell_power):
             cell += spread_direction
-            self.total_board[cell.r][cell.q]._perform_spread(player)
+            self.total_board[cell.r][cell.q].perform_spread(player)
         
         self.total_board[spread_action.cell.r][spread_action.cell.q] = Cell(None, 0)
 
-    def get_cells_under_attack(self, defender:'PlayerColor'):
+    def max_cells_under_attack(self, defender:'PlayerColor'):
+        """This function returns the maximum cells under attack by one spread action
+
+        Args:
+            defender (PlayerColor): The defending player
+
+        Returns:
+            int: Max cells under attack count
+        """
         attacker = defender.opponent
         defender_cells = self.get_player_board(defender)
         cell_max = 0
@@ -123,6 +135,15 @@ class GameBoard:
         return cell_max
     
     def get_empty_cells_under_attack(self, player:'PlayerColor'):
+        """This function returns the count of empty cells that are "covered" by
+        possible spread actions by a particular player's cells
+
+        Args:
+            player (PlayerColor): The attacking player
+
+        Returns:
+            int: Count of covered empty cells
+        """
         empty_cells = self.get_empty_spaces()
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
@@ -140,32 +161,6 @@ class GameBoard:
                 if c == 0:
                     attack_count += 1
         return attack_count
-                    
-        
-    def get_canonical_board(self, player:PlayerColor):
-        """Returns the board with player cells having +ve power,
-        and opponent cells having -ve power
-
-        Args:
-            player (PlayerColor): The phasing player
-
-        Returns:
-            list(int): The board
-        """
-        board = []
-        for r in range(constants.BOARD_N):
-            col = []
-            for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
-                if cell.player == player:
-                    col.append(cell.power)
-                elif cell.player == player.opponent:
-                    col.append(-1 * cell.power)
-                else:
-                    col.append(0)
-            board.append(col)
-
-        return board
     
     def get_player_board(self, player:PlayerColor):
         """Returns the board with only the phasing player's cells, all other
@@ -209,35 +204,30 @@ class GameBoard:
 
         return board
     
-    def get_player_power_board(self, power, player:'PlayerColor'):
-        """Returns the board where only cells having a particular power of the
-        phasing player are included, else 0
+    def count_power(self, player:'PlayerColor'):
+        """This function returns the total power on the board
+        belonging to a player
 
         Args:
-            power (int): The power to be included
-            player (PlayerColor): The phasing player
-            
+            player (PlayerColor): The player
+
         Returns:
-            list(int): Board
+            int: Power count
         """
-        board = []
+        total_power = 0
         for r in range(constants.BOARD_N):
-            col = []
             for q in range(constants.BOARD_N):
                 cell = self.total_board[r][q]
-                if cell.player == player and cell.power == power:
-                    col.append(cell.power)
-                else:
-                    col.append(0)
-            board.append(col)
+                if cell.player == player:
+                    total_power += cell.power
+        
+        return total_power
 
-        return board
-    
-    def count_total_power(self) -> int:
-        """Returns the total power of all cells on the board
+    def count_total_power(self):
+        """This function returns the total power on the board
 
         Returns:
-            int: The total power
+            int: Total power
         """
         total_power = 0
         for r in range(constants.BOARD_N):
@@ -247,27 +237,27 @@ class GameBoard:
         
         return total_power
     
-    def count_power(self, player:'PlayerColor'):
-        total_power = 0
-        for r in range(constants.BOARD_N):
-            for q in range(constants.BOARD_N):
-                cell = self.total_board[r][q]
-                if cell.player == player:
-                    total_power += cell.power
-        
-        return total_power
-    
     def count_cells(self, player:'PlayerColor'):
+        """This function counts the total number of cells belonging to one player
+
+        Args:
+            player (PlayerColor): The player
+
+        Returns:
+            int: Cells count
+        """
         total_cells = 0
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
                 cell = self.total_board[r][q]
                 if cell.player == player:
                     total_cells += 1
-        
+       
         return total_cells
 
 class Cell:
+    """This class encapsulates the logic of a single cell on the game board
+    """
     def __init__(self, player:'PlayerColor|None', power):
         self.player = player
         self.power = power
@@ -275,7 +265,12 @@ class Cell:
     def __str__(self):
         return f"{self.player}, POWER: {self.power}"
 
-    def _perform_spread(self, spreading_player:'PlayerColor'):
+    def perform_spread(self, spreading_player:'PlayerColor'):
+        """This function performs the effect of a spread action on the cell
+
+        Args:
+            spreading_player (PlayerColor): The attacking player
+        """
         self.power += 1
         self.player = spreading_player
 
