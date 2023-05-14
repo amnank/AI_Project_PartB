@@ -1,5 +1,3 @@
-import sys
-sys.path.append("game")
 from referee.game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
 
 class InfexionGame:

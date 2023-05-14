@@ -2,9 +2,9 @@
 # Project Part B: Game Playing Agent
 from referee.game import \
     PlayerColor, Action
-from .agent_network import AgentNetwork
-from .alpha_zero_logic import MCTS
-from .alpha_zero_helper import greedy_select_from_policy, sample_policy, create_input
+# from .agent_network import AgentNetwork
+# from .alpha_zero_logic import MCTS
+# from .alpha_zero_helper import greedy_select_from_policy, sample_policy, create_input
 from .infexion_logic import GameBoard
 from .minimax import MiniMaxPruning
 
@@ -20,27 +20,27 @@ class Agent:
         Initialise the agent.
         """
         self._color = color
-        match color:
-            case PlayerColor.RED:
-                # print("Testing: I am playing as red")
-                # hyper_params = {
-                #     "is_randomized": False,
-                #     "load_network": "Network 1 - New Adam",
-                #     "input_depth": 14
-                # }
-                # self.network = AgentNetwork(hyper_params, "GameNet1")
-                # self.mcts = MCTS(self.network, 10)
-                self.agent = MiniMaxPruning(3)
-            case PlayerColor.BLUE:
-                # print("Testing: I am playing as blue")
-                # hyper_params = {
-                #     "is_randomized": False,
-                #     "load_network": "Network 1 - Adam",
-                #     "input_depth": 14
-                # }
-                self.agent = MiniMaxPruning(3)
+        # match color:
+        #     case PlayerColor.RED:
+        #         # print("Testing: I am playing as red")
+        #         # hyper_params = {
+        #         #     "is_randomized": False,
+        #         #     "load_network": "Network 1 - New Adam",
+        #         #     "input_depth": 14
+        #         # }
+        #         # self.network = AgentNetwork(hyper_params, "GameNet1")
+        #         # self.mcts = MCTS(self.network, 10)
+        #         self.agent = MiniMaxPruning(3)
+        #     case PlayerColor.BLUE:
+        #         # print("Testing: I am playing as blue")
+        #         # hyper_params = {
+        #         #     "is_randomized": False,
+        #         #     "load_network": "Network 1 - Adam",
+        #         #     "input_depth": 14
+        #         # }
+        #         self.agent = MiniMaxPruning(3)
 
-
+        self.agent = MiniMaxPruning(3)
         self.board = GameBoard()
         # self.network = AgentNetwork(hyper_params, "GameNet1")
         # self.mcts = MCTS(self.network, 15)
