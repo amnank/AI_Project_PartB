@@ -32,8 +32,9 @@ class Node:
         if game_end is not None:
             return game_end * np.inf
 
-        red_value = 10 * self.board.count_power(PlayerColor.RED) - self.board.get_cells_under_attack(PlayerColor.RED) + 0.5 * self.board.count_cells(PlayerColor.RED)
-        blue_value = 10 * self.board.count_power(PlayerColor.BLUE) - self.board.get_cells_under_attack(PlayerColor.BLUE) +  0.5 * self.board.count_cells(PlayerColor.BLUE)
+        # self.board.get_cells_under_attack(PlayerColor.RED)
+        red_value = 2 * self.board.count_power(PlayerColor.RED) - self.board.get_cells_under_attack(PlayerColor.RED) + self.board.count_cells(PlayerColor.RED)
+        blue_value = 2 * self.board.count_power(PlayerColor.BLUE) - self.board.get_cells_under_attack(PlayerColor.BLUE) +  self.board.count_cells(PlayerColor.BLUE)
 
         return red_value - blue_value
 
@@ -96,7 +97,7 @@ class MiniMaxPruning:
             else:
                 val = node.eval()
                 self.state_evals[node.board] = val
-                if len(self.state_evals) > 20:
+                if len(self.state_evals) > 15000:
                     del self.state_evals[(next(iter(self.state_evals)))]
                 return val, actions_list[node.action]
     

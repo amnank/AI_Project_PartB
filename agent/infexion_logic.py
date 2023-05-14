@@ -103,20 +103,24 @@ class GameBoard:
     def get_cells_under_attack(self, defender:'PlayerColor'):
         attacker = defender.opponent
         defender_cells = self.get_player_board(defender)
-        attack_count = 0
+        cell_max = 0
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
                 cell = self.total_board[r][q]
                 pos = HexPos(r, q)
                 if cell.player == attacker:
-                    for _ in range(cell.power):
-                        for spread_dir in spread_dirs:
+                    for spread_dir in spread_dirs:
+                        dir_max = 0
+                        for _ in range(cell.power):
+                            dir_count = 0
                             spread_r, spread_q = (pos + spread_dir).r, (pos + spread_dir).q
                             if defender_cells[spread_r][spread_q] > 0:
-                                attack_count += 1
                                 defender_cells[spread_r][spread_q] = 0
+                                dir_count += 1
+                        dir_max = max(dir_count, dir_max)
+                    cell_max = max(cell_max, dir_max)
         
-        return attack_count
+        return cell_max
                     
         
     def get_canonical_board(self, player:PlayerColor):
