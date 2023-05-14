@@ -1,8 +1,6 @@
 import numpy as np
-from .infexion_logic import InfexionGame, GameBoard # pylint: disable=import-error
 from referee.game import PlayerColor, constants, SpawnAction, SpreadAction, HexPos, HexDir
-
-game = InfexionGame()
+from .infexion_logic import get_game_ended, GameBoard # pylint: disable=import-error
 
 actions_list = []
 for q in range(constants.BOARD_N):
@@ -101,7 +99,7 @@ class MiniMaxPruning:
     
     def get_best_val(self, node: 'Node', player:'PlayerColor', alpha, beta):
         
-        game_end = game.get_game_ended(node.board)
+        game_end = get_game_ended(node.board)
         if game_end is not None:
             return game_end * np.Infinity, actions_list[node.action]
         # If node is a leaf node

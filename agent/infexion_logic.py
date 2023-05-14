@@ -1,111 +1,52 @@
 from referee.game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
 
-class InfexionGame:
-    """The class encapsulates the logic of the Infexion game
+def get_game_ended(game_board:'GameBoard') -> 'int|None':
+    """Returns the final value of the game (+1, 0, -1) if ended, else None
+
+    Returns:
+        int|None: The value of the game state
     """
-    
-    def get_valid_moves(self, game_board:'GameBoard', player:'PlayerColor'):
-        """Generates a list of valid action from this board state
+    if game_board.moves_played == constants.MAX_TURNS:
+        red_count = game_board.count_power(PlayerColor.RED)
+        blue_count = game_board.count_power(PlayerColor.BLUE)
 
-        Args:
-            player (PlayerColor): The phasing player
-
-        Returns:
-            [actions]: Valid actions
-        """
-        actions = []
-        total_power = game_board.count_total_power()
-        for rizz in range(constants.BOARD_N):
-            for q in range(constants.BOARD_N):
-                cell = game_board[rizz][q]
-                if cell.player is None:
-                    if (total_power < constants.MAX_TOTAL_POWER):
-                        actions.append(SpawnAction(HexPos(rizz,q)))
-                elif cell.player == player:
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.Down))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.DownLeft))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.DownRight))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.Up))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.UpLeft))
-                    actions.append(SpreadAction(HexPos(rizz,q), HexDir.UpRight))
-        
-        return actions
-    
-    def is_valid_move(self, game_board:'GameBoard', player, action) -> bool:
-        """Returns whether an action made by a player is valid or not
-
-        Args:
-            player (PlayerColor): The phasing player
-            action (SpawnAction | SpreadAction): The action
-
-        Returns:
-            bool: is_valid
-        """
-        cell = game_board.total_board[action.cell.r][action.cell.q]
-        total_power = game_board.count_total_power()
-        
-        match action:
-            case SpawnAction():
-                if (cell.player is None) and (total_power < constants.MAX_TOTAL_POWER):
-                    return True
-                else:
-                    return False
-            case SpreadAction():
-                if cell.player == player:
-                    return True
-                else:
-                    return False
-    
-
-    def get_game_ended(self, game_board:'GameBoard') -> 'int|None':
-        """Returns the final value of the game (+1, 0, -1) if ended, else None
-
-        Returns:
-            int|None: The value of the game state
-        """
-        if game_board.moves_played == constants.MAX_TURNS:
-            red_count = game_board.count_power(PlayerColor.RED)
-            blue_count = game_board.count_power(PlayerColor.BLUE)
-
-            if red_count > blue_count and (red_count - blue_count >= constants.WIN_POWER_DIFF):
-                # print("RED WON")
-                return int(PlayerColor.RED)
-            elif blue_count > red_count and (blue_count - red_count >= constants.WIN_POWER_DIFF):
-                # print("BLUE WON")
-                return int(PlayerColor.BLUE)
-            else:
-                # print("DRAW")
-                return 0
-        
-        if game_board.moves_played < 2:
-            return None
-
-        red_count = 0
-        blue_count = 0
-
-        for r in range(constants.BOARD_N):
-            for q in range(constants.BOARD_N):
-                cell = game_board.total_board[r][q]
-                if cell.player is None:
-                    continue
-                if cell.player == PlayerColor.RED:
-                    red_count += 1
-                elif cell.player == PlayerColor.BLUE:
-                    blue_count += 1
-
-        if (red_count == 0 and blue_count == 0):
-            # print("DRAW")
-            return 0
-        elif (red_count == 0):
-            # print("BLUE WON")
-            return int(PlayerColor.BLUE)
-        elif (blue_count == 0):
+        if red_count > blue_count and (red_count - blue_count >= constants.WIN_POWER_DIFF):
             # print("RED WON")
             return int(PlayerColor.RED)
+        elif blue_count > red_count and (blue_count - red_count >= constants.WIN_POWER_DIFF):
+            # print("BLUE WON")
+            return int(PlayerColor.BLUE)
         else:
-            return None
+            # print("DRAW")
+            return 0
+    
+    if game_board.moves_played < 2:
+        return None
 
-infexion_game = InfexionGame()
+    red_count = 0
+    blue_count = 0
+
+    for r in range(constants.BOARD_N):
+        for q in range(constants.BOARD_N):
+            cell = game_board.total_board[r][q]
+            if cell.player is None:
+                continue
+            if cell.player == PlayerColor.RED:
+                red_count += 1
+            elif cell.player == PlayerColor.BLUE:
+                blue_count += 1
+
+    if (red_count == 0 and blue_count == 0):
+        # print("DRAW")
+        return 0
+    elif (red_count == 0):
+        # print("BLUE WON")
+        return int(PlayerColor.BLUE)
+    elif (blue_count == 0):
+        # print("RED WON")
+        return int(PlayerColor.RED)
+    else:
+        return None
 
 class GameBoard:
     """This class encapsulates the logic of an Infexion game state
