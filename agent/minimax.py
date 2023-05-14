@@ -37,8 +37,8 @@ class Node:
         blue_power = self.board.count_power(PlayerColor.BLUE)
         blue_count = self.board.count_cells(PlayerColor.BLUE)
         
-        red_value =  red_power  + 6 * red_count + self.board.get_empty_cells_under_attack(PlayerColor.RED)
-        blue_value = blue_power  + 6 * blue_count + self.board.get_empty_cells_under_attack(PlayerColor.BLUE)
+        red_value =  red_power  + 6 * red_count
+        blue_value = blue_power  + 6 * blue_count
 
         return red_value - blue_value
 
