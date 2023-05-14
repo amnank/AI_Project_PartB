@@ -1,6 +1,6 @@
 import numpy as np
 from referee.game import PlayerColor, constants, SpawnAction, SpreadAction, HexPos, HexDir
-from .infexion_logic import get_game_ended, GameBoard # pylint: disable=import-error
+from .infexion_logic import get_game_ended, spread_dirs, GameBoard # pylint: disable=import-error
 
 actions_list = []
 for q in range(constants.BOARD_N):
@@ -9,12 +9,8 @@ for q in range(constants.BOARD_N):
 
 for q in range(constants.BOARD_N):
     for r in range(constants.BOARD_N):
-        actions_list.append(SpreadAction(HexPos(r,q), HexDir.DownLeft))
-        actions_list.append(SpreadAction(HexPos(r,q), HexDir.Down))
-        actions_list.append(SpreadAction(HexPos(r,q), HexDir.DownRight))
-        actions_list.append(SpreadAction(HexPos(r,q), HexDir.Up))
-        actions_list.append(SpreadAction(HexPos(r,q), HexDir.UpLeft))
-        actions_list.append(SpreadAction(HexPos(r,q), HexDir.UpRight))
+        for s_d in spread_dirs:
+            actions_list.append(SpreadAction(HexPos(r,q), s_d))
 
 class Node:
     """ A node represents a board state in the game """
@@ -32,6 +28,10 @@ class Node:
         """
         The evaluation function. 
         """
+        game_end = get_game_ended(self.board)
+        if game_end is not None:
+            return game_end * np.inf
+
         red_value = 10 * self.board.count_power(PlayerColor.RED) - self.board.get_cells_under_attack(PlayerColor.RED) + 0.5 * self.board.count_cells(PlayerColor.RED)
         blue_value = 10 * self.board.count_power(PlayerColor.BLUE) - self.board.get_cells_under_attack(PlayerColor.BLUE) +  0.5 * self.board.count_cells(PlayerColor.BLUE)
 
@@ -51,13 +51,8 @@ class Node:
             [actions]: Valid actions
         """
 
-        # if game.get_game_ended(game_board) is not None:
-        #     print("GAME ENDED... RETURNING")
-
         if self.height == 0:
             return
-        
-        # print(f"Getting valid actions for {player}")
 
         actions = []
         total_power = game_board.count_total_power()
@@ -71,12 +66,8 @@ class Node:
                         actions.append(actions_list.index(SpawnAction(HexPos(r,q))))
 
                 elif cell.player == player:
-                    actions.insert(0, actions_list.index(SpreadAction(HexPos(r,q), HexDir.Down)))
-                    actions.insert(0, actions_list.index(SpreadAction(HexPos(r,q), HexDir.DownLeft)))
-                    actions.insert(0, actions_list.index(SpreadAction(HexPos(r,q), HexDir.DownRight)))
-                    actions.insert(0, actions_list.index(SpreadAction(HexPos(r,q), HexDir.Up)))
-                    actions.insert(0, actions_list.index(SpreadAction(HexPos(r,q), HexDir.UpLeft)))
-                    actions.insert(0, actions_list.index(SpreadAction(HexPos(r,q), HexDir.UpRight)))
+                    for spread_dir in spread_dirs:
+                        actions.insert(0, actions_list.index(SpreadAction(HexPos(r,q), spread_dir)))
 
         return actions
 
@@ -88,7 +79,7 @@ class MiniMaxPruning:
         self.min_val = -np.Infinity
 
         # this is used to store evaluated state values incase they come up again, avoids recalculation
-        # self.state_evals = {}
+        self.state_evals = {}
 
     def run_minimax(self, player:'PlayerColor', board:'GameBoard') -> 'SpreadAction|SpawnAction':
         root = Node(board, player, self.initial_height)
@@ -96,13 +87,16 @@ class MiniMaxPruning:
         return action
     
     def get_best_val(self, node: 'Node', player:'PlayerColor', alpha, beta):
-        
-        game_end = get_game_ended(node.board)
-        if game_end is not None:
-            return game_end * np.Infinity, actions_list[node.action]
+
         # If node is a leaf node
-        if node.height == 0:
-            return node.eval(), actions_list[node.action]
+        if node.height == 0 or get_game_ended(node.board) is not None:
+            val = self.state_evals.get(node.board, None)
+            if val is not None:
+                return val, actions_list[node.action]
+            else:
+                val = node.eval()
+                self.state_evals[node.board] = val
+                return val, actions_list[node.action]
     
     
         # MAX is playing
@@ -112,11 +106,12 @@ class MiniMaxPruning:
             best_action = None
             # print(node.children)
 
-            for _, action in enumerate(node.children):
+            for action in node.children:
                 # print(child.action)
                 board = GameBoard(node.board)
                 board.handle_valid_action(player, actions_list[action])
                 board.moves_played = node.board.moves_played + 1
+
                 child = Node(board, player.opponent, node.height - 1, action)
                 eval_value, _ = self.get_best_val(child, player.opponent, alpha, beta)
                 if eval_value > max_val:
@@ -140,7 +135,7 @@ class MiniMaxPruning:
             min_val = self.max_val
             best_action = None
 
-            for _, action in enumerate(node.children):
+            for action in node.children:
                 # print(child.action)
                 board = GameBoard(node.board)
                 board.handle_valid_action(player, actions_list[action])

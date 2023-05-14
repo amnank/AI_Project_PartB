@@ -1,5 +1,7 @@
 from referee.game import PlayerColor, SpawnAction, HexPos, HexDir, SpreadAction, constants # pylint: disable=import-error
 
+spread_dirs = [HexDir.Down, HexDir.DownLeft, HexDir.DownRight, HexDir.Up, HexDir.UpLeft, HexDir.UpRight]
+
 def get_game_ended(game_board:'GameBoard') -> 'int|None':
     """Returns the final value of the game (+1, 0, -1) if ended, else None
 
@@ -101,7 +103,6 @@ class GameBoard:
     def get_cells_under_attack(self, defender:'PlayerColor'):
         attacker = defender.opponent
         defender_cells = self.get_player_board(defender)
-        spread_dirs = [HexDir.Down, HexDir.DownLeft, HexDir.DownRight, HexDir.Up, HexDir.UpLeft, HexDir.UpRight]
         attack_count = 0
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
