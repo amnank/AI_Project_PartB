@@ -70,43 +70,41 @@ class InfexionGame:
             blue_count = game_board.count_power(PlayerColor.BLUE)
 
             if red_count > blue_count and (red_count - blue_count >= constants.WIN_POWER_DIFF):
-                print("RED WON")
+                # print("RED WON")
                 return int(PlayerColor.RED)
             elif blue_count > red_count and (blue_count - red_count >= constants.WIN_POWER_DIFF):
-                print("BLUE WON")
+                # print("BLUE WON")
                 return int(PlayerColor.BLUE)
             else:
-                print("DRAW")
+                # print("DRAW")
                 return 0
         
         if game_board.moves_played < 2:
             return None
 
-        red = False
-        blue = False
+        red_count = 0
+        blue_count = 0
 
         for r in range(constants.BOARD_N):
             for q in range(constants.BOARD_N):
                 cell = game_board.total_board[r][q]
+                if cell.player is None:
+                    continue
                 if cell.player == PlayerColor.RED:
-                    red = True
-                if cell.player == PlayerColor.BLUE:
-                    blue = True
+                    red_count += 1
+                elif cell.player == PlayerColor.BLUE:
+                    blue_count += 1
 
-        if (red and not blue):
-            # Red win
-            print("RED WON")
-            return int(PlayerColor.RED)
-        elif (not red and blue):
-            # Blue win
-            print("BLUE WON")
-            return int(PlayerColor.BLUE)
-        elif (not red and not blue):
-            # Draw
-            print("DRAW")
+        if (red_count == 0 and blue_count == 0):
+            # print("DRAW")
             return 0
+        elif (red_count == 0):
+            # print("BLUE WON")
+            return int(PlayerColor.BLUE)
+        elif (blue_count == 0):
+            # print("RED WON")
+            return int(PlayerColor.RED)
         else:
-            # Game in progress
             return None
 
 infexion_game = InfexionGame()
@@ -160,6 +158,26 @@ class GameBoard:
             self.total_board[cell.r][cell.q]._perform_spread(player)
         
         self.total_board[spread_action.cell.r][spread_action.cell.q] = Cell(None, 0)
+
+    def get_cells_under_attack(self, defender:'PlayerColor'):
+        attacker = defender.opponent
+        defender_cells = self.get_player_board(defender)
+        spread_dirs = [HexDir.Down, HexDir.DownLeft, HexDir.DownRight, HexDir.Up, HexDir.UpLeft, HexDir.UpRight]
+        attack_count = 0
+        for r in range(constants.BOARD_N):
+            for q in range(constants.BOARD_N):
+                cell = self.total_board[r][q]
+                pos = HexPos(r, q)
+                if cell.player == attacker:
+                    for _ in range(cell.power):
+                        for spread_dir in spread_dirs:
+                            spread_r, spread_q = (pos + spread_dir).r, (pos + spread_dir).q
+                            if defender_cells[spread_r][spread_q] > 0:
+                                attack_count += 1
+                                defender_cells[spread_r][spread_q] = 0
+        
+        return attack_count
+                    
         
     def get_canonical_board(self, player:PlayerColor):
         """Returns the board with player cells having +ve power,
@@ -275,11 +293,24 @@ class GameBoard:
                     total_power += cell.power
         
         return total_power
+    
+    def count_cells(self, player:'PlayerColor'):
+        total_cells = 0
+        for r in range(constants.BOARD_N):
+            for q in range(constants.BOARD_N):
+                cell = self.total_board[r][q]
+                if cell.player == player:
+                    total_cells += 1
+        
+        return total_cells
 
 class Cell:
     def __init__(self, player:'PlayerColor|None', power):
         self.player = player
         self.power = power
+    
+    def __str__(self):
+        return f"{self.player}, POWER: {self.power}"
 
     def _perform_spread(self, spreading_player:'PlayerColor'):
         self.power += 1
