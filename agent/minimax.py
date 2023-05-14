@@ -33,8 +33,8 @@ class Node:
             return game_end * np.inf
 
         # self.board.get_cells_under_attack(PlayerColor.RED)
-        red_value = 5 * self.board.count_power(PlayerColor.RED) - self.board.get_cells_under_attack(PlayerColor.RED) + self.board.count_cells(PlayerColor.RED) - 0.1 * self.board.get_empty_cells_under_attack(PlayerColor.BLUE)
-        blue_value = 5 * self.board.count_power(PlayerColor.BLUE) - self.board.get_cells_under_attack(PlayerColor.BLUE) +  self.board.count_cells(PlayerColor.BLUE) - 0.1 * self.board.get_empty_cells_under_attack(PlayerColor.RED)
+        red_value = self.board.count_power(PlayerColor.RED) + self.board.count_cells(PlayerColor.RED)
+        blue_value = self.board.count_power(PlayerColor.BLUE) + self.board.count_cells(PlayerColor.BLUE)
 
         return red_value - blue_value
 
@@ -90,17 +90,17 @@ class MiniMaxPruning:
     
     def get_best_val(self, node: 'Node', player:'PlayerColor', alpha, beta):
 
+        val = self.state_evals.get(node.board, None)
+        if val is not None:
+            return val, actions_list[node.action]
+
         # If node is a leaf node
         if node.height == 0 or get_game_ended(node.board) is not None:
-            val = self.state_evals.get(node.board, None)
-            if val is not None:
-                return val, actions_list[node.action]
-            else:
-                val = node.eval()
-                self.state_evals[node.board] = val
-                if len(self.state_evals) > self.buffer_size:
-                    del self.state_evals[(next(iter(self.state_evals)))]
-                return val, actions_list[node.action]
+            val = node.eval()
+            self.state_evals[node.board] = val
+            if len(self.state_evals) > self.buffer_size:
+                del self.state_evals[(next(iter(self.state_evals)))]
+            return val, actions_list[node.action]
     
     
         # MAX is playing
