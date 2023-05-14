@@ -17,7 +17,7 @@ class Agent:
         Initialise the agent.
         """
         self._color = color
-        self.agent = MiniMaxPruning(3)
+        self.agent = MiniMaxPruning(3, 12000)
         self.board = GameBoard()
 
     def action(self, **referee: dict) -> Action:

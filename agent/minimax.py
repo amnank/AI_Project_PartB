@@ -33,8 +33,8 @@ class Node:
             return game_end * np.inf
 
         # self.board.get_cells_under_attack(PlayerColor.RED)
-        red_value = 2 * self.board.count_power(PlayerColor.RED) - self.board.get_cells_under_attack(PlayerColor.RED) + self.board.count_cells(PlayerColor.RED)
-        blue_value = 2 * self.board.count_power(PlayerColor.BLUE) - self.board.get_cells_under_attack(PlayerColor.BLUE) +  self.board.count_cells(PlayerColor.BLUE)
+        red_value = 5 * self.board.count_power(PlayerColor.RED) - self.board.get_cells_under_attack(PlayerColor.RED) + self.board.count_cells(PlayerColor.RED) - 0.1 * self.board.get_empty_cells_under_attack(PlayerColor.BLUE)
+        blue_value = 5 * self.board.count_power(PlayerColor.BLUE) - self.board.get_cells_under_attack(PlayerColor.BLUE) +  self.board.count_cells(PlayerColor.BLUE) - 0.1 * self.board.get_empty_cells_under_attack(PlayerColor.RED)
 
         return red_value - blue_value
 
@@ -74,13 +74,14 @@ class Node:
 
 class MiniMaxPruning:
 
-    def __init__(self, initial_height=2):
+    def __init__(self, initial_height=2, buffer_size=10000):
         self.initial_height = initial_height
         self.max_val = np.Infinity
         self.min_val = -np.Infinity
 
         # this is used to store evaluated state values incase they come up again, avoids recalculation
         self.state_evals = {}
+        self.buffer_size = buffer_size
 
     def run_minimax(self, player:'PlayerColor', board:'GameBoard') -> 'SpreadAction|SpawnAction':
         root = Node(board, player, self.initial_height)
@@ -97,7 +98,7 @@ class MiniMaxPruning:
             else:
                 val = node.eval()
                 self.state_evals[node.board] = val
-                if len(self.state_evals) > 150000:
+                if len(self.state_evals) > self.buffer_size:
                     del self.state_evals[(next(iter(self.state_evals)))]
                 return val, actions_list[node.action]
     

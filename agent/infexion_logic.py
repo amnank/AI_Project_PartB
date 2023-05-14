@@ -121,6 +121,25 @@ class GameBoard:
                     cell_max = max(cell_max, dir_max)
         
         return cell_max
+    
+    def get_empty_cells_under_attack(self, player:'PlayerColor'):
+        empty_cells = self.get_empty_spaces()
+        for r in range(constants.BOARD_N):
+            for q in range(constants.BOARD_N):
+                cell = self.total_board[r][q]
+                pos = HexPos(r, q)
+                if cell.player == player:
+                    for spread_dir in spread_dirs:
+                        for _ in range(cell.power):
+                            spread_r, spread_q = (pos + spread_dir).r, (pos + spread_dir).q
+                            if empty_cells[spread_r][spread_q] > 0:
+                                empty_cells[spread_r][spread_q] = 0
+        attack_count = 0
+        for r in empty_cells:
+            for c in r:
+                if c == 0:
+                    attack_count += 1
+        return attack_count
                     
         
     def get_canonical_board(self, player:PlayerColor):
