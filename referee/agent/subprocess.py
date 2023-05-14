@@ -4,6 +4,7 @@
 import sys
 from contextlib import contextmanager
 from importlib import import_module
+from importlib.util import find_spec
 from traceback import format_exc
 from typing import Any
 
@@ -13,6 +14,7 @@ from .io import AsyncProcessStatus, m_pickle, m_unpickle,\
 
 _STDOUT_OVERRIDE_MESSAGE = "stdout usage is not allowed in agent (use stderr)"
 _STDIN_OVERRIDE_MESSAGE = "stdin usage is not allowed in agent"
+
 
 # Wrapper subprocess entry point
 def main():
@@ -56,6 +58,13 @@ def main():
 
     def _s_pickle(o: Any) -> str:
         return m_pickle(o).decode("ascii")
+    
+    def _is_pickleable(o: Any) -> bool:
+        try:
+            m_pickle(o)
+            return True
+        except Exception:
+            return False
 
     # Command line arguments are the class/constructor arguments
     cls_module, cls_name, time_limit, space_limit, cons_args, cons_kwargs \
@@ -103,7 +112,13 @@ def main():
         try:
             yield
         except Exception as e:
-            _reply(_REPLY_EXC, e, "\n".join(format_exc().splitlines()[5:]))
+            stacktrace_str = "\n".join(format_exc().splitlines()[5:])
+            _reply(_REPLY_EXC, e, stacktrace_str)
+
+    # If numpy exists on system, ensure it's imported so that it is included
+    # in baseline memory usage calculations
+    if find_spec("numpy") is not None and cls_name != "MockClient":
+        import numpy
 
     # Construct class instance
     with _relay_exceptions(), timer, space:
@@ -121,9 +136,9 @@ def main():
         result = None
         with _relay_exceptions(), timer, space:
             result = getattr(instance, name)(*args, **{**kwargs, **_referee()})
+            if not _is_pickleable(result):
+                result = "<unpickleable>"
         
-        if result is None:
-            result = _ACK
         _reply(_REPLY_OK, result)
 
 # Only run if directly invoked

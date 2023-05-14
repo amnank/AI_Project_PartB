@@ -13,6 +13,7 @@ _SUBPROC_MODULE = "referee.agent.subprocess"
 _ACK = "ACK"
 _REPLY_OK = b"OK"
 _REPLY_EXC = b"EXC"
+_CHUNK_LIMIT_KB = 1024
 
 
 class InterchangeException(Exception):

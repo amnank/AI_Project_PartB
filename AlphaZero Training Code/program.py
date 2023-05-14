@@ -1,9 +1,11 @@
 # COMP30024 Artificial Intelligence, Semester 1 2023
 # Project Part B: Game Playing Agent
 from referee.game import \
-    PlayerColor, Action
+    PlayerColor, Action, SpawnAction, HexPos
+from .agent_network import AgentNetwork
+from .alpha_zero_logic import MCTS
+from .alpha_zero_helper import greedy_select_from_policy, sample_policy
 from .infexion_logic import GameBoard
-from .minimax import MiniMaxPruning
 
 # This is the entry point for your game playing agent. Currently the agent
 # simply spawns a token at the centre of the board if playing as RED, and
@@ -17,18 +19,40 @@ class Agent:
         Initialise the agent.
         """
         self._color = color
-        self.agent = MiniMaxPruning(initial_height=2, buffer_size=12000)
+        match color:
+            case PlayerColor.RED:
+                print("Testing: I am playing as red")
+            case PlayerColor.BLUE:
+                print("Testing: I am playing as blue")
+
+        hyper_params = {
+            "is_randomized": False,
+            "load_network": "Network 9",
+            "input_depth": 14
+        }
+        
         self.board = GameBoard()
+        self.network = AgentNetwork(hyper_params, "GameNet1")
+        self.mcts = MCTS()
 
     def action(self, **referee: dict) -> Action:
         """
         Return the next action to take.
         """
-        return self.agent.run_minimax(self._color, self.board)
+
+        self.mcts = MCTS(self.board, self._color)
+        next_policy = self.mcts.run(self.network)
+        action = greedy_select_from_policy(next_policy)
+        return action
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
         Update the agent with the last player's action.
         """
+        # if self._color == PlayerColor.BLUE and self.board.moves_played == 0:
+        #     _ = self.mcts.run(self.network)
+        
+        # self.mcts.update_state(action)
+
         self.board.handle_valid_action(color, action)
         

@@ -10,7 +10,7 @@ from typing import Any
 from ..log import NullLogger, LogStream
 from .resources import ResourceLimitException
 from .io import AsyncProcessStatus, m_pickle, m_unpickle,\
-    _SUBPROC_MODULE, _ACK, _REPLY_OK, _REPLY_EXC
+    _SUBPROC_MODULE, _ACK, _REPLY_OK, _REPLY_EXC, _CHUNK_LIMIT_KB
 
 class WrappedProcessException(Exception):
     pass
@@ -126,7 +126,8 @@ class RemoteProcessClassClient:
                 self._cons_kwargs
             )),
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
+            limit = _CHUNK_LIMIT_KB * 1000
         )
         assert self._proc is not None
         assert self._proc.stdin is not None

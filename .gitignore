@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Neural network outputs
+Network*/
+Network * - SGD/
+
+# Debugging text files
+agent/*.txt

@@ -63,7 +63,7 @@ class AgentProxyPlayer(Player):
             self._log.error("\n")
 
             raise self._InterceptExc(
-                f"resource limit exceeded in {self._name} agent class",
+                f"{str(e)} in {self._name} agent",
                 self._color
             )
 
@@ -76,8 +76,16 @@ class AgentProxyPlayer(Player):
             self._log.error("\n")
 
             raise self._InterceptExc(
-                f"error in {self._name} agent class\n"
+                f"error in {self._name} agent\n"
                 f"{self._ret_symbol} {err_lines[-1]}",
+                self._color
+            )
+        
+        except EOFError as e:
+            self._log.error(f"EOFError caught (pid={self._agent.pid}):")
+
+            raise self._InterceptExc(
+                f"EOF reply from {self._name} (did the process exit?)",
                 self._color
             )
 

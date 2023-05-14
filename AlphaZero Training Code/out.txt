@@ -1,0 +1,4 @@
+Created network!
+Starting Iteration 0
+Playing game 0
+50 moves played
