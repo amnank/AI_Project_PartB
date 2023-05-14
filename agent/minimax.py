@@ -34,10 +34,10 @@ class Node:
         """
         The evaluation function. 
         """
-        red_value = 6 * self.board.count_power(PlayerColor.RED) + self.board.get_cells_under_attack(PlayerColor.BLUE) +\
-                    self.board.count_cells(PlayerColor.RED)
-        blue_value = 6 * self.board.count_power(PlayerColor.BLUE) + self.board.get_cells_under_attack(PlayerColor.RED) +\
-                    self.board.count_cells(PlayerColor.BLUE)
+        red_value = 10 * self.board.count_power(PlayerColor.RED) +\
+                    0.5 * self.board.count_cells(PlayerColor.RED)
+        blue_value = 10 * self.board.count_power(PlayerColor.BLUE) +\
+                    0.5 * self.board.count_cells(PlayerColor.BLUE)
 
         return red_value - blue_value
 
