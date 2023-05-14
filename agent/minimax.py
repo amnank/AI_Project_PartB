@@ -96,6 +96,8 @@ class MiniMaxPruning:
             else:
                 val = node.eval()
                 self.state_evals[node.board] = val
+                if len(self.state_evals) > 20:
+                    del self.state_evals[(next(iter(self.state_evals)))]
                 return val, actions_list[node.action]
     
     
