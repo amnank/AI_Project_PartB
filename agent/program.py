@@ -25,7 +25,7 @@ class Agent:
                 print("Testing: I am playing as red")
                 hyper_params = {
                     "is_randomized": False,
-                    "load_network": "Network 13",
+                    "load_network": "Network 0",
                     "input_depth": 14
                 }
                 # self.network = AgentNetwork(hyper_params, "GameNet1")
