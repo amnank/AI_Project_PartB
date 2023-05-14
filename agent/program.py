@@ -30,7 +30,7 @@ class Agent:
                 # }
                 # self.network = AgentNetwork(hyper_params, "GameNet1")
                 # self.mcts = MCTS(self.network, 10)
-                self.agent = MiniMaxPruning(1)
+                self.agent = MiniMaxPruning(2)
             case PlayerColor.BLUE:
                 # print("Testing: I am playing as blue")
                 # hyper_params = {
