@@ -32,8 +32,13 @@ class Node:
         if game_end is not None:
             return game_end * np.inf
         
-        red_value = 10 * self.board.count_power(PlayerColor.RED) + self.board.count_cells(PlayerColor.RED)
-        blue_value = 10 * self.board.count_power(PlayerColor.BLUE) + self.board.count_cells(PlayerColor.BLUE)
+        red_power = self.board.count_power(PlayerColor.RED)
+        red_count = self.board.count_cells(PlayerColor.RED)
+        blue_power = self.board.count_power(PlayerColor.BLUE)
+        blue_count = self.board.count_cells(PlayerColor.BLUE)
+        
+        red_value =  red_power  + 6 * red_count + self.board.get_empty_cells_under_attack(PlayerColor.RED)
+        blue_value = blue_power  + 6 * blue_count + self.board.get_empty_cells_under_attack(PlayerColor.BLUE)
 
         return red_value - blue_value
 
