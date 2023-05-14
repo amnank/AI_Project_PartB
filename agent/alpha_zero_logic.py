@@ -6,17 +6,19 @@ import numpy as np
 from referee.game import PlayerColor, SpawnAction, SpreadAction # pylint: disable=import-error
 from .agent_network import AgentNetwork        # pylint: disable=import-error
 from .alpha_zero_helper import\
-    policy_actions, valid_action_mask, create_input, sample_policy, greedy_select_from_policy, get_symmetries, get_policy_symmetries   # pylint: disable=import-error
+    policy_actions, normalize_policy, valid_action_mask, create_input, sample_policy, greedy_select_from_policy, get_symmetries, get_policy_symmetries   # pylint: disable=import-error
 from .infexion_logic import infexion_game, GameBoard             # pylint: disable=import-error
 import time 
 
 
 self_play_args = {
     'num_iters': 10,
-    'num_train_games': 20,
-    'pit_games': 10,
+    'num_train_games': 40,
+    'pit_games': 15,
     'threshold': 0.6
 }
+
+action_indices = np.indices((1,343))[1].flatten()
 
 class Node:
     """
@@ -86,17 +88,20 @@ class Node:
         """
         Generate a successor state of this Node and add it to its children
         """
-        action_idx = np.random.choice(np.where(self.expandable_moves == 1)[0])
+
+        priors = np.multiply(priors + 1e-30, self.expandable_moves)
+        action_idx = np.random.choice(action_indices, p=normalize_policy(priors))
+
         self.expandable_moves[action_idx] = 0
         action = policy_actions[action_idx]
 
         pol = priors[action_idx][0]
 
-        board = GameBoard(self.game_board)    
+        board = GameBoard(self.game_board) 
         board.handle_valid_action(self.player_to_move, action)
         player = self.player_to_move.opponent
 
-        self.children.append(Node(player, board, pol, action_idx, self))   
+        self.children.append(Node(player, board, pol, action_idx, self))
     
     def backpropagate(self, value):
         self.value_sum += value
@@ -116,7 +121,9 @@ class MCTS:
         self.root = Node(PlayerColor.RED, GameBoard())
         self._expand_root()
 
-    def search(self, temp):
+    def search(self, player:'PlayerColor', board:'GameBoard', temp):
+        self.root = Node(player, board)
+        self._expand_root()
         for _ in range(self.sims):
             node = self.root
 
@@ -152,30 +159,16 @@ class MCTS:
 
         # action_probs /= np.sum(visit_counts)
         action_probs = visit_counts / np.sum(visit_counts)
+        for child in self.root.children:
+            print(policy_actions[child.action_index], child.visit_count)
+
         return action_probs
-
-    def update_tree(self, last_action:'SpreadAction|SpawnAction'):
-        action_idx = np.where(policy_actions == last_action)[0][0]
-
-        for child in self.root.children:
-            if child.action_index == action_idx:
-                self.root = child
-                self.root.parent = None
-                self.root.expandable_moves = np.array([valid_action_mask(self.root.game_board, self.root.player_to_move)]).T
-                self._expand_root()
-                return
         
-        for child in self.root.children:
-            if child.action_index not in self.root.expandable_moves:
-                self.root.children.remove(child)
-        
-        # raise ValueError(f"{self.root.player_to_move} does not have {policy_actions[action_idx]} trying to be updated")
-
     def _expand_root(self):
         state = create_input(self.root.player_to_move, self.root.game_board)
         priors = self.network.get_policy(state)
 
-        priors = np.multiply(priors + 1e-6, self.root.expandable_moves)
+        priors = np.multiply(priors + 1e-30, self.root.expandable_moves)
 
         continue_flag = True
 
@@ -185,7 +178,7 @@ class MCTS:
             pol = pol.item()
 
             for child in self.root.children:
-                if child.action_index == i and pol != 0:
+                if child.action_index == i and pol != 0 and self.root.expandable_moves[i] != 0:
                     continue_flag = True
                     break
 
@@ -199,6 +192,10 @@ class MCTS:
             board.handle_valid_action(self.root.player_to_move, action)
             new_player = self.root.player_to_move.opponent
             self.root.children.append(Node(new_player, board, pol, i, self.root))
+        
+        for child in self.root.children:
+            if child.action_index not in self.root.expandable_moves:
+                self.root.children.remove(child)
 
         self.root.expandable_moves = np.zeros(self.root.expandable_moves.shape)
 
@@ -284,11 +281,11 @@ class SelfPlay:
         curr_player = PlayerColor.RED
 
         while True:
-            improved_policy = mcts.search(temp=1)
+            improved_policy = mcts.search(curr_player, game_board, temp=1)
             next_action = sample_policy(improved_policy)
             # action_index = np.where(policy_actions == next_action)[0][0]
             # print(infexion_game.is_valid_move(game_board, curr_player, next_action), next_action, curr_player)
-            mcts.update_tree(next_action)
+            # mcts.update_tree(next_action)
 
             if infexion_game.is_valid_move(game_board, curr_player, next_action) is False:
                 for r in game_board.get_canonical_board(PlayerColor.BLUE):
@@ -316,16 +313,16 @@ class SelfPlay:
         examples_tuples = [tuple(example) for example in examples]
 
 
-        # sym_examples = []
-        # for example in examples:
-        #     inp_sym_list = np.array([get_symmetries(board) for board in example[0]])
-        #     inp_sym_list = np.transpose(inp_sym_list, (1, 0, 2, 3))
-        #     policy_sym_list = get_policy_symmetries(example[1])
+        sym_examples = []
+        for example in examples:
+            inp_sym_list = np.array([get_symmetries(board) for board in example[0]])
+            inp_sym_list = np.transpose(inp_sym_list, (1, 0, 2, 3))
+            policy_sym_list = get_policy_symmetries(example[1])
 
-        #     for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
-        #         sym_examples.append((inp_var, policy_var, example[2]))
+            for inp_var, policy_var in zip(inp_sym_list, policy_sym_list):
+                sym_examples.append((inp_var, policy_var, example[2]))
 
-        # examples_tuples += sym_examples
+        examples_tuples += sym_examples
         print(f"Moves played: {game_board.moves_played}")
         return examples_tuples
     
@@ -358,9 +355,9 @@ class SelfPlay:
                 elif game_board.moves_played > 100 and game_board.moves_played < 200: 
                     temp = 0.2
                 else:
-                    temp = 1e-3
+                    temp = 0.01
                 
-                next_policy = curr_mcts.search(temp)
+                next_policy = curr_mcts.search(curr_player, game_board, temp)
                 next_action = sample_policy(next_policy)
 
                 if infexion_game.is_valid_move(game_board, curr_player, next_action) is False:
@@ -374,7 +371,7 @@ class SelfPlay:
                 #     for r in game_board.get_canonical_board(PlayerColor.BLUE):
                 #         print(r)
 
-                curr_mcts.update_tree(next_action)
+                # curr_mcts.update_tree(next_action)
 
                 # Board and current player's MCTS is updated
                 game_board.handle_valid_action(curr_player, next_action)
@@ -384,7 +381,7 @@ class SelfPlay:
 
                 curr_player = curr_player.opponent
                 curr_mcts = new_mcts if curr_mcts == old_mcts else old_mcts
-                curr_mcts.update_tree(next_action)
+                # curr_mcts.update_tree(next_action)
                 
                 val = infexion_game.get_game_ended(game_board)
                 if val is not None:
